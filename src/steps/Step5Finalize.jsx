@@ -371,30 +371,41 @@ export default function Step5Finalize({ onBack, data }) {
           {(data.staff || []).length > 0 ? (
             <div className="flex flex-col gap-2">
               {data.staff.map((member) => (
-                <div key={member.id} className="flex items-center gap-3 bg-[#0a0a0a] border border-[#161616] rounded-xl px-3 py-2.5">
-                  {/* Avatar */}
-                  <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-[#1e1e1e] bg-[#111] flex items-center justify-center">
-                    {member.photo ? (
-                      <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <UserCircle className="w-5 h-5 text-[#333]" />
-                    )}
+                <div key={member.id} className="bg-[#0a0a0a] border border-[#161616] rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    {/* 16:9 thumbnail */}
+                    <div className="w-14 flex-shrink-0 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#111] flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
+                      {member.photo ? (
+                        <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <UserCircle className="w-4 h-4 text-[#2a2a2a]" />
+                      )}
+                    </div>
+                    {/* Name + title */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-[#ccc] font-semibold truncate leading-tight">
+                        {member.name || <span className="text-[#444] italic font-normal">No name</span>}
+                      </p>
+                      <p className="text-[10px] truncate leading-tight mt-0.5" style={{ color: `${accent}99` }}>
+                        {member.title || <span className="text-[#444] italic">No title</span>}
+                      </p>
+                    </div>
+                    {/* Indicators */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ background: member.photo ? accent : '#222' }} title={member.photo ? 'Photo' : 'No photo'} />
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ background: member.bookingLink ? accent : '#222' }} title={member.bookingLink ? 'Booking link' : 'No booking link'} />
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ background: member.contactEmail ? '#888' : '#222' }} title={member.contactEmail ? 'Contact email' : 'No contact email'} />
+                    </div>
                   </div>
-                  {/* Name + position */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-[#ccc] font-medium truncate leading-tight">
-                      {member.name || <span className="text-[#444] italic font-normal">No name</span>}
-                    </p>
-                    <p className="text-[10px] truncate leading-tight mt-0.5" style={{ color: `${accent}99` }}>
-                      {member.position || <span className="text-[#444] italic">No position</span>}
-                    </p>
-                  </div>
-                  {/* Photo status dot */}
-                  <div
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: member.photo ? accent : '#2a2a2a' }}
-                    title={member.photo ? 'Photo provided' : 'No photo'}
-                  />
+                  {/* Booking link preview */}
+                  {member.bookingLink && (
+                    <div className="px-3 pb-2.5 flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded flex-shrink-0 flex items-center justify-center" style={{ background: `${accent}15` }}>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
+                      </div>
+                      <span className="text-[10px] text-[#555] truncate">{member.bookingLink}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
