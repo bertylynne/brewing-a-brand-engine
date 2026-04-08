@@ -1,9 +1,9 @@
 const STEPS = [
-  { label: 'Welcome' },
+  { label: 'Welcome'  },
   { label: 'Identity' },
-  { label: 'Branch' },
+  { label: 'Category' },
   { label: 'Services' },
-  { label: 'Finalize' },
+  { label: 'Brief'    },
 ];
 
 export default function Stepper({ current }) {

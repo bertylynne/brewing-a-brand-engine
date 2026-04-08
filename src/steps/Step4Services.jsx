@@ -337,11 +337,11 @@ export default function Step4Services({ onNext, onBack, data, setData }) {
           >
             <span className="text-[9px] font-bold" style={{ color: accent }}>04</span>
           </div>
-          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">Service Check</span>
+          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">Service Architecture</span>
         </div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Services, Pricing & Duration</h2>
         <p className="text-[#666] text-sm mt-1 leading-relaxed">
-          Set each service's name, price, and appointment length — we'll use the timing to build your booking calendar.
+          Provide your service offering so we can build your menu and booking calendar accurately.
         </p>
       </div>
 
@@ -363,7 +363,7 @@ export default function Step4Services({ onNext, onBack, data, setData }) {
       <div className="animate-fade-up delay-100 mb-5 flex items-start gap-2.5 bg-[#c9a227]/5 border border-[#c9a227]/15 rounded-xl px-3.5 py-3">
         <Clock className="w-4 h-4 text-[#c9a227] flex-shrink-0 mt-0.5" />
         <p className="text-[11px] text-[#888] leading-relaxed">
-          Duration sets how long each slot is blocked on your booking calendar. Click the clock icon on any row to choose or type a custom time in minutes.
+          Duration tells our team how long to block each appointment slot on your booking calendar. Select a preset or type a custom value in minutes.
         </p>
       </div>
 

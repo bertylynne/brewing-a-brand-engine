@@ -17,7 +17,7 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
       {/* Heading */}
       <div className="animate-fade-up delay-100 mb-3">
         <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight">
-          Welcome to Your
+          Your Brand Brief
           <br />
           <span
             className="inline-block"
@@ -28,14 +28,14 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
               backgroundSize: '200% auto',
             }}
           >
-            Spec Build Walkthrough
+            Consultation
           </span>
         </h1>
       </div>
 
       {/* Subtext */}
       <p className="animate-fade-up delay-200 text-[#888] text-base max-w-[320px] leading-relaxed mb-10">
-        Let's review your website together and make it <span className="text-[#bbb]">uniquely yours</span> in just a few steps.
+        We'll collect your brand information so our team can build your website <span className="text-[#bbb]">professionally and precisely</span>.
       </p>
 
       {/* Video Placeholder */}
@@ -72,7 +72,7 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
           {/* Bottom label */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent py-3 px-4">
             <p className="text-[10px] text-[#666] text-left tracking-wider uppercase">
-              Your walkthrough preview • Approx. 2 min
+              Client onboarding overview • Approx. 2 min
             </p>
           </div>
         </div>
@@ -88,14 +88,14 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
             backgroundSize: '200% auto',
           }}
         >
-          <span>Start Your Walkthrough</span>
+          <span>Begin Your Consultation</span>
           <ChevronRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
         </button>
       </div>
 
       {/* Footer note */}
       <p className="animate-fade-up delay-500 text-[#444] text-xs mt-6 mb-6 tracking-wide">
-        5 quick steps · Takes about 5 minutes
+        5 steps · Under 5 minutes · Handled by our team
       </p>
 
       {/* Discovery Mode panel */}

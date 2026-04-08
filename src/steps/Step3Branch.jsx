@@ -69,11 +69,11 @@ export default function Step3Branch({ onNext, onBack, data, setData }) {
           <div className="w-5 h-5 rounded-full bg-[#c9a227]/10 border border-[#c9a227]/30 flex items-center justify-center">
             <span className="text-[9px] font-bold text-[#c9a227]">03</span>
           </div>
-          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">The Branch</span>
+          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">Business Category</span>
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">What type of business is this?</h2>
+        <h2 className="text-2xl font-bold text-white tracking-tight">How should we classify your business?</h2>
         <p className="text-[#666] text-sm mt-1.5">
-          This helps us tailor your service list and content to fit your business.
+          This determines the service architecture and content strategy our team will apply to your build.
         </p>
       </div>
 

@@ -51,18 +51,18 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
           <div className="w-5 h-5 rounded-full bg-[#c9a227]/10 border border-[#c9a227]/30 flex items-center justify-center">
             <span className="text-[9px] font-bold text-[#c9a227]">02</span>
           </div>
-          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">The Identity</span>
+          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">Brand Identity</span>
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Your Hero Section</h2>
+        <h2 className="text-2xl font-bold text-white tracking-tight">Confirm Your Message</h2>
         <p className="text-[#666] text-sm mt-1 leading-relaxed">
-          This is the first thing visitors read. Edit it to reflect your brand voice.
+          Review the opening statement for your site. Adjust the copy and supply your brand photo if you have one ready.
         </p>
       </div>
 
       {/* Hero text editor */}
       <div className="animate-fade-up delay-100 mb-6">
         <div className="flex justify-between items-center mb-2">
-          <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">Hero Copy</label>
+          <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">Opening Statement</label>
           <div className="flex items-center gap-2">
             {/* Word count (secondary) */}
             <span className="text-[11px] text-[#444] font-mono hidden sm:inline">
@@ -119,7 +119,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
       {/* Image upload */}
       <div className="animate-fade-up delay-200 mb-8">
         <label className="block text-xs text-[#888] uppercase tracking-wider font-semibold mb-2">
-          Hero Photo
+          Brand Photo
         </label>
 
         <div
@@ -182,7 +182,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
 
         {!data.heroImage && (
           <p className="text-[11px] text-[#444] mt-2 text-center">
-            Don't have one yet? We'll use a stock photo for now — you can update it later.
+            No photo yet? Our team will source a professional placeholder — you can supply yours before launch.
           </p>
         )}
       </div>
