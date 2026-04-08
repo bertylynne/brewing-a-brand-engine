@@ -74,8 +74,61 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         </p>
       </div>
 
-      {/* ── Logo + Tagline row ── */}
+      {/* Hero text editor */}
       <div className="animate-fade-up delay-100 mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">Opening Statement</label>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#444] font-mono hidden sm:inline">
+              {words} words
+            </span>
+            <span className="text-[#333]">·</span>
+            <div className="flex items-center gap-1">
+              {(nearLimit || overLimit) && (
+                <AlertCircle className={`w-3.5 h-3.5 flex-shrink-0 ${overLimit ? 'text-red-400' : 'text-[#c9a227]'}`} />
+              )}
+              <span className={`text-xs font-mono tabular-nums transition-colors duration-200 ${counterColor}`}>
+                {charCount}
+                <span className="text-[#444]">/{CHAR_LIMIT}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className={`relative rounded-xl border transition-all duration-200 ${borderClass} bg-[#0e0e0e]`}>
+          <textarea
+            value={text}
+            onChange={handleTextChange}
+            rows={6}
+            className="w-full bg-transparent text-[#ccc] text-sm leading-relaxed p-4 pb-5 resize-none outline-none rounded-xl placeholder-[#444]"
+            placeholder="Write your hero section copy here..."
+          />
+          <div className="absolute bottom-0 inset-x-0 h-[3px] rounded-b-xl overflow-hidden bg-[#1a1a1a]">
+            <div
+              className={`h-full transition-all duration-300 ${barColor}`}
+              style={{ width: `${Math.min((charCount / CHAR_LIMIT) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {overLimit && (
+          <p className="mt-2 text-xs text-red-400 flex items-center gap-1.5 animate-fade-up">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {charCount - CHAR_LIMIT} character{charCount - CHAR_LIMIT !== 1 ? 's' : ''} over the limit — trim your copy to continue.
+          </p>
+        )}
+
+        <button
+          onClick={() => setData({ ...data, heroText: DEFAULT_HERO_TEXT })}
+          className="mt-2 flex items-center gap-1.5 text-[11px] text-[#555] hover:text-[#c9a227] transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" />
+          Reset to default
+        </button>
+      </div>
+
+      {/* ── Logo + Tagline row ── */}
+      <div className="animate-fade-up delay-200 mb-6">
         <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
 
           {/* Logo upload — square */}
@@ -182,59 +235,6 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Hero text editor */}
-      <div className="animate-fade-up delay-200 mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">Opening Statement</label>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#444] font-mono hidden sm:inline">
-              {words} words
-            </span>
-            <span className="text-[#333]">·</span>
-            <div className="flex items-center gap-1">
-              {(nearLimit || overLimit) && (
-                <AlertCircle className={`w-3.5 h-3.5 flex-shrink-0 ${overLimit ? 'text-red-400' : 'text-[#c9a227]'}`} />
-              )}
-              <span className={`text-xs font-mono tabular-nums transition-colors duration-200 ${counterColor}`}>
-                {charCount}
-                <span className="text-[#444]">/{CHAR_LIMIT}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className={`relative rounded-xl border transition-all duration-200 ${borderClass} bg-[#0e0e0e]`}>
-          <textarea
-            value={text}
-            onChange={handleTextChange}
-            rows={6}
-            className="w-full bg-transparent text-[#ccc] text-sm leading-relaxed p-4 pb-5 resize-none outline-none rounded-xl placeholder-[#444]"
-            placeholder="Write your hero section copy here..."
-          />
-          <div className="absolute bottom-0 inset-x-0 h-[3px] rounded-b-xl overflow-hidden bg-[#1a1a1a]">
-            <div
-              className={`h-full transition-all duration-300 ${barColor}`}
-              style={{ width: `${Math.min((charCount / CHAR_LIMIT) * 100, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {overLimit && (
-          <p className="mt-2 text-xs text-red-400 flex items-center gap-1.5 animate-fade-up">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            {charCount - CHAR_LIMIT} character{charCount - CHAR_LIMIT !== 1 ? 's' : ''} over the limit — trim your copy to continue.
-          </p>
-        )}
-
-        <button
-          onClick={() => setData({ ...data, heroText: DEFAULT_HERO_TEXT })}
-          className="mt-2 flex items-center gap-1.5 text-[11px] text-[#555] hover:text-[#c9a227] transition-colors"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Reset to default
-        </button>
       </div>
 
       {/* Hero photo upload */}
