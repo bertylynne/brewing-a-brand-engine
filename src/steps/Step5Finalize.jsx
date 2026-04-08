@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase } from 'lucide-react';
 
 // ─── CBA Lab post-submission page ─────────────────────────────────────────────
 function CBALabPage({ data }) {
@@ -445,6 +445,43 @@ export default function Step5Finalize({ onBack, data }) {
           )}
         </div>
       </div>
+
+      {/* Hiring */}
+      {data.hiring?.active && (
+        <div className="animate-fade-up delay-200 mb-4">
+          <div className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-[#141414]">
+              <Briefcase className="w-3 h-3" style={{ color: `${accent}90` }} />
+              <p className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">
+                Now Hiring
+              </p>
+            </div>
+            <div className="px-4 py-3 flex flex-col gap-2.5">
+              {data.hiring.roles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {data.hiring.roles.map((role) => (
+                    <span
+                      key={role}
+                      className="px-2.5 py-1 rounded-full text-[10px] font-medium border"
+                      style={{ borderColor: `${accent}40`, background: `${accent}0d`, color: `${accent}cc` }}
+                    >
+                      {role}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {data.hiring.description && (
+                <p className="text-[11px] text-[#777] leading-relaxed italic">
+                  "{data.hiring.description}"
+                </p>
+              )}
+              {!data.hiring.roles.length && !data.hiring.description && (
+                <p className="text-[11px] text-[#444] italic">Hiring flag set — no details added yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Consent note */}
       <div className="animate-fade-up delay-200 mb-5">

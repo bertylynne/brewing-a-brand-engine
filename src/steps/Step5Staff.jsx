@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import {
   ChevronRight, ChevronLeft, Upload, UserCircle,
-  Trash2, Plus, Users, Link, Mail, Phone, ImageIcon,
+  Trash2, Plus, Users, Link, Mail, Phone, ImageIcon, Briefcase,
 } from 'lucide-react';
 
 let nextMemberId = 300;
@@ -356,6 +356,20 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
   const staff    = data.staff || [];
   const setStaff = (members) => setData({ ...data, staff: members });
 
+  const hiring        = data.hiring        || { active: false, roles: [], description: '' };
+  const setHiring     = (h) => setData({ ...data, hiring: h });
+
+  const HIRING_ROLES = isBarber
+    ? ['Barber', 'Apprentice Barber', 'Master Barber', 'Shop Manager']
+    : ['Stylist', 'Colorist', 'Aesthetician', 'Nail Technician', 'Salon Manager'];
+
+  const toggleRole = (role) => {
+    const roles = hiring.roles.includes(role)
+      ? hiring.roles.filter((r) => r !== role)
+      : [...hiring.roles, role];
+    setHiring({ ...hiring, roles });
+  };
+
   const addMember = () => {
     setStaff([
       ...staff,
@@ -473,6 +487,101 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
           Don't have this to hand? Skip for now — our team will follow up before launch.
         </p>
       )}
+
+      {/* ── Hiring section ── */}
+      <div className="animate-fade-up delay-300 rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] overflow-hidden mb-5">
+        {/* Header row */}
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#141414]">
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-3.5 h-3.5" style={{ color: `${accent}90` }} />
+            <span className="text-[11px] text-[#666] uppercase tracking-widest font-semibold">
+              Currently Hiring?
+            </span>
+          </div>
+          {/* Toggle */}
+          <button
+            type="button"
+            onClick={() => setHiring({ ...hiring, active: !hiring.active })}
+            className="relative w-10 h-5.5 rounded-full transition-all duration-200 flex-shrink-0"
+            style={{
+              background: hiring.active ? accent : '#1e1e1e',
+              width: '40px', height: '22px',
+            }}
+          >
+            <span
+              className="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+              style={{ left: hiring.active ? '20px' : '3px' }}
+            />
+          </button>
+        </div>
+
+        {hiring.active && (
+          <div className="p-4 flex flex-col gap-4 animate-fade-up">
+
+            {/* Role chips */}
+            <div>
+              <p className="text-[10px] text-[#555] uppercase tracking-widest font-semibold mb-2.5">
+                What roles are you looking to fill?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {HIRING_ROLES.map((role) => {
+                  const selected = hiring.roles.includes(role);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => toggleRole(role)}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-95"
+                      style={
+                        selected
+                          ? { borderColor: `${accent}60`, background: `${accent}12`, color: accent }
+                          : { borderColor: '#1e1e1e', background: '#0a0a0a', color: '#555' }
+                      }
+                    >
+                      {role}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">
+                  Brief Description
+                </p>
+                <span className={`text-[11px] font-mono tabular-nums transition-colors ${
+                  (hiring.description || '').length > 240 ? 'text-red-400' : 'text-[#383838]'
+                }`}>
+                  {(hiring.description || '').length}
+                  <span className="text-[#282828]">/250</span>
+                </span>
+              </div>
+              <textarea
+                value={hiring.description}
+                onChange={(e) => setHiring({ ...hiring, description: e.target.value })}
+                rows={3}
+                maxLength={260}
+                placeholder={`e.g. "Looking for an experienced barber who specialises in fades and can handle a busy weekend clientele."`}
+                className="w-full bg-[#0a0a0a] border border-[#161616] rounded-xl px-3.5 py-3 text-sm text-[#ccc] placeholder-[#2e2e2e] outline-none resize-none focus:border-[#c9a227]/30 transition-colors leading-relaxed"
+              />
+              <p className="text-[11px] text-[#383838] mt-1.5">
+                A couple of sentences is enough — we'll include this in your brief so we can feature it on your site.
+              </p>
+            </div>
+
+          </div>
+        )}
+
+        {!hiring.active && (
+          <div className="px-4 py-3">
+            <p className="text-[11px] text-[#383838]">
+              Toggle on if you'd like to feature a "Now Hiring" section on your website.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Navigation */}
       <div className="animate-fade-up delay-300 flex gap-3 mt-5">

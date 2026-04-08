@@ -20,6 +20,7 @@ const DEFAULT_DATA = {
   businessType:      null,
   serviceCategories: null,
   staff:             [],
+  hiring:            { active: false, roles: [], description: '' },
   // Discovery extras
   businessName:  null,
   address:       null,
