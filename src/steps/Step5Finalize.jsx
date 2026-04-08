@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle } from 'lucide-react';
 
 // ─── CBA Lab post-submission page ─────────────────────────────────────────────
 function CBALabPage({ data }) {
@@ -240,7 +240,7 @@ export default function Step5Finalize({ onBack, data }) {
       <div className="animate-fade-up mb-6">
         <div className="flex items-center gap-2 mb-1">
           <div className="w-5 h-5 rounded-full bg-[#c9a227]/10 border border-[#c9a227]/30 flex items-center justify-center">
-            <span className="text-[9px] font-bold text-[#c9a227]">05</span>
+            <span className="text-[9px] font-bold text-[#c9a227]">06</span>
           </div>
           <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">Brand Brief</span>
         </div>
@@ -357,6 +357,49 @@ export default function Step5Finalize({ onBack, data }) {
             </div>
           ) : (
             <p className="text-[11px] text-[#444] italic">No services provided</p>
+          )}
+        </div>
+
+        {/* Team roster */}
+        <div className="px-5 py-4 border-t border-[#1a1a1a]">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Users className="w-3 h-3" style={{ color: `${accent}99` }} />
+            <p className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">
+              Team Roster ({(data.staff || []).length})
+            </p>
+          </div>
+          {(data.staff || []).length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {data.staff.map((member) => (
+                <div key={member.id} className="flex items-center gap-3 bg-[#0a0a0a] border border-[#161616] rounded-xl px-3 py-2.5">
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-[#1e1e1e] bg-[#111] flex items-center justify-center">
+                    {member.photo ? (
+                      <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <UserCircle className="w-5 h-5 text-[#333]" />
+                    )}
+                  </div>
+                  {/* Name + position */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-[#ccc] font-medium truncate leading-tight">
+                      {member.name || <span className="text-[#444] italic font-normal">No name</span>}
+                    </p>
+                    <p className="text-[10px] truncate leading-tight mt-0.5" style={{ color: `${accent}99` }}>
+                      {member.position || <span className="text-[#444] italic">No position</span>}
+                    </p>
+                  </div>
+                  {/* Photo status dot */}
+                  <div
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ background: member.photo ? accent : '#2a2a2a' }}
+                    title={member.photo ? 'Photo provided' : 'No photo'}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#444] italic">Skipped — our team will follow up on headshots</p>
           )}
         </div>
       </div>

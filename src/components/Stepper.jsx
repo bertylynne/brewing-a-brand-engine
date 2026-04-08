@@ -3,6 +3,7 @@ const STEPS = [
   { label: 'Identity' },
   { label: 'Category' },
   { label: 'Services' },
+  { label: 'Team'     },
   { label: 'Brief'    },
 ];
 
