@@ -184,8 +184,9 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
                   <button
                     key={opt.value} type="button"
                     onClick={() => {
-                      onUpdate(member.id, 'bookingStatus', opt.value);
-                      if (opt.value !== 'has') onUpdate(member.id, 'bookingLink', '');
+                      const patch = { bookingStatus: opt.value };
+                      if (opt.value !== 'has') patch.bookingLink = '';
+                      onUpdate(member.id, patch);
                     }}
                     className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl border transition-all duration-150 active:scale-[0.97]"
                     style={
@@ -285,7 +286,14 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
   const toggleRole = (role) => setHiring({ ...hiring, roles: hiring.roles.includes(role) ? hiring.roles.filter((r) => r !== role) : [...hiring.roles, role] });
 
   const addMember = () => setStaff([...staff, { id: nextMemberId++, name: '', title: '', photo: null, photoName: null, bookingStatus: 'none', bookingLink: '', contactEmail: '', contactPhone: '' }]);
-  const updateMember = (id, field, value) => setStaff(staff.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
+  // Accept a single field+value OR a patch object so multiple fields can update atomically
+  const updateMember = (id, fieldOrPatch, value) => {
+    const patch = typeof fieldOrPatch === 'object' ? fieldOrPatch : { [fieldOrPatch]: value };
+    setData((prev) => {
+      const members = (prev.staff || []).map((m) => (m.id === id ? { ...m, ...patch } : m));
+      return { ...prev, staff: members };
+    });
+  };
   const deleteMember = (id) => setStaff(staff.filter((m) => m.id !== id));
 
   return (
