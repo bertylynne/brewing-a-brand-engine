@@ -397,15 +397,23 @@ export default function Step5Finalize({ onBack, data }) {
                       <div className="w-1.5 h-1.5 rounded-full" style={{ background: member.contactEmail ? '#888' : '#222' }} title={member.contactEmail ? 'Contact email' : 'No contact email'} />
                     </div>
                   </div>
-                  {/* Booking link preview */}
-                  {member.bookingLink && (
-                    <div className="px-3 pb-2.5 flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded flex-shrink-0 flex items-center justify-center" style={{ background: `${accent}15` }}>
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
+                  {/* Booking status row */}
+                  {(() => {
+                    const status = member.bookingStatus || 'none';
+                    if (status === 'create') return (
+                      <div className="px-3 pb-2.5 flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accent }} />
+                        <span className="text-[10px] font-medium" style={{ color: `${accent}cc` }}>CBA to build booking page</span>
                       </div>
-                      <span className="text-[10px] text-[#555] truncate">{member.bookingLink}</span>
-                    </div>
-                  )}
+                    );
+                    if (status === 'has' && member.bookingLink) return (
+                      <div className="px-3 pb-2.5 flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accent }} />
+                        <span className="text-[10px] text-[#555] truncate">{member.bookingLink}</span>
+                      </div>
+                    );
+                    return null;
+                  })()}
                 </div>
               ))}
             </div>

@@ -211,22 +211,73 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
 
           {/* Booking link */}
           <div>
-            <label className="block text-[10px] text-[#555] uppercase tracking-widest font-semibold mb-1.5">
+            <label className="block text-[10px] text-[#555] uppercase tracking-widest font-semibold mb-2">
               Booking Link
             </label>
-            <div className="flex items-center gap-2 bg-[#0e0e0e] border border-[#1e1e1e] rounded-lg px-3 py-2.5 focus-within:border-[#c9a227]/40 transition-colors">
-              <Link className="w-3.5 h-3.5 text-[#444] flex-shrink-0" />
-              <input
-                type="url"
-                value={member.bookingLink}
-                onChange={(e) => onUpdate(member.id, 'bookingLink', e.target.value)}
-                placeholder="https://booksy.com/..."
-                className="flex-1 bg-transparent text-sm text-[#ccc] outline-none placeholder-[#2e2e2e] min-w-0"
-              />
+
+            {/* Three-option selector */}
+            <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+              {[
+                { value: 'none',   label: 'None',          sub: 'No booking needed'   },
+                { value: 'create', label: 'Build One',      sub: 'CBA will create it'  },
+                { value: 'has',    label: 'I Have One',     sub: 'Paste link below'    },
+              ].map((opt) => {
+                const isActive = (member.bookingStatus || 'none') === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onUpdate(member.id, 'bookingStatus', opt.value);
+                      if (opt.value !== 'has') onUpdate(member.id, 'bookingLink', '');
+                    }}
+                    className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl border transition-all duration-150 active:scale-[0.97]"
+                    style={
+                      isActive
+                        ? { borderColor: `${accent}60`, background: `${accent}10`, color: accent }
+                        : { borderColor: '#1a1a1a', background: '#0a0a0a', color: '#555' }
+                    }
+                  >
+                    <span className={`text-xs font-semibold leading-tight ${isActive ? '' : 'text-[#666]'}`}>
+                      {opt.label}
+                    </span>
+                    <span className="text-[9px] leading-tight text-center" style={{ color: isActive ? `${accent}99` : '#383838' }}>
+                      {opt.sub}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <p className="text-[10px] text-[#3a3a3a] mt-1.5">
-              Paste their individual booking page URL if they have one (Booksy, StyleSeat, Square, etc.)
-            </p>
+
+            {/* Build-one callout */}
+            {(member.bookingStatus || 'none') === 'create' && (
+              <div
+                className="flex items-start gap-2.5 rounded-xl border px-3 py-2.5"
+                style={{ borderColor: `${accent}20`, background: `${accent}08` }}
+              >
+                <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `${accent}20` }}>
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
+                </div>
+                <p className="text-[11px] leading-relaxed" style={{ color: `${accent}cc` }}>
+                  Got it — CBA Solutions will build and configure a booking page for this team member as part of your website setup.
+                </p>
+              </div>
+            )}
+
+            {/* URL input — only when "I have one" */}
+            {(member.bookingStatus || 'none') === 'has' && (
+              <div className="flex items-center gap-2 bg-[#0e0e0e] border border-[#1e1e1e] rounded-lg px-3 py-2.5 focus-within:border-[#c9a227]/40 transition-colors">
+                <Link className="w-3.5 h-3.5 text-[#444] flex-shrink-0" />
+                <input
+                  type="url"
+                  value={member.bookingLink}
+                  onChange={(e) => onUpdate(member.id, 'bookingLink', e.target.value)}
+                  placeholder="https://booksy.com/..."
+                  className="flex-1 bg-transparent text-sm text-[#ccc] outline-none placeholder-[#2e2e2e] min-w-0"
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -311,7 +362,8 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
       {
         id: nextMemberId++,
         name: '', title: '', photo: null, photoName: null,
-        bookingLink: '', contactEmail: '', contactPhone: '',
+        bookingStatus: 'none', bookingLink: '',
+        contactEmail: '', contactPhone: '',
       },
     ]);
   };
