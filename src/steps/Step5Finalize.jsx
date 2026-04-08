@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type } from 'lucide-react';
 
 // ─── CBA Lab post-submission page ─────────────────────────────────────────────
 function CBALabPage({ data }) {
@@ -266,6 +266,29 @@ export default function Step5Finalize({ onBack, data }) {
             {isBarber ? 'Barbershop' : 'Beauty Salon'}
           </div>
         </div>
+
+        {/* Logo + Tagline */}
+        {(data.logo || data.tagline) && (
+          <div className="px-5 py-3.5 border-b border-[#1a1a1a] bg-[#0a0a0a]">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <ImageIcon className="w-3 h-3 text-[#c9a227]" />
+              <p className="text-[10px] text-[#c9a227] uppercase tracking-widest font-semibold">Brand Assets</p>
+            </div>
+            <div className="flex items-center gap-4">
+              {data.logo && (
+                <div className="w-14 h-14 rounded-xl border border-[#1e1e1e] bg-[#111] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <img src={data.logo} alt="Logo" className="w-full h-full object-contain p-1.5" />
+                </div>
+              )}
+              {data.tagline && (
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <Type className="w-3 h-3 text-[#555] flex-shrink-0 mt-0.5" />
+                  <span className="text-[11px] text-[#888] italic leading-relaxed">"{data.tagline}"</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Discovery fields */}
         {hasDiscovery && (
