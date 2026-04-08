@@ -37,8 +37,7 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
         <h1 className="font-serif-display text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
           <span style={{ color: 'var(--text-primary)' }}>Your Brand Brief &amp;</span>
           <br />
-          <span style={{ color: 'var(--text-primary)' }}>Website </span>
-          <span style={{ color: 'var(--gold)' }}>Consultation</span>
+          <span style={{ color: 'var(--gold)' }}>Website Consultation</span>
         </h1>
         {/* Decorative rule */}
         <div className="flex items-center justify-center gap-3 mt-4">
