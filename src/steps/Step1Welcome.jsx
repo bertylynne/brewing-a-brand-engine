@@ -16,14 +16,12 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
 
       {/* Logo + Client Portal */}
       <div className="animate-fade-up mb-6 relative flex flex-col items-center gap-3">
-        {/* Logo on a white pill so it renders cleanly on dark bg */}
-        <div className="rounded-2xl overflow-hidden px-6 py-3 shadow-lg" style={{ background: '#ffffff' }}>
-          <img
-            src="/cba-logo.png"
-            alt="CBA Solutions"
-            className="h-12 w-auto object-contain"
-          />
-        </div>
+        <img
+          src="/cba-logo.png"
+          alt="CBA Solutions"
+          className="h-12 w-auto object-contain"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
         {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="h-px w-10" style={{ background: 'var(--border)' }} />
