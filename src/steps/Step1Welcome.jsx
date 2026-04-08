@@ -1,8 +1,9 @@
 import { Play, ChevronRight } from 'lucide-react';
+import DiscoveryPanel from '../components/DiscoveryPanel';
 
-export default function Step1Welcome({ onNext }) {
+export default function Step1Welcome({ onNext, onDiscovery }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100svh-69px)] px-5 py-10 text-center">
+    <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center">
       {/* Agency badge */}
       <div className="animate-fade-up mb-8">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#c9a227]/30 bg-[#c9a227]/5">
@@ -47,7 +48,6 @@ export default function Step1Welcome({ onNext }) {
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
             }}
           />
-
           {/* Grid lines */}
           <div
             className="absolute inset-0 opacity-[0.04]"
@@ -57,13 +57,11 @@ export default function Step1Welcome({ onNext }) {
               backgroundSize: '40px 40px',
             }}
           />
-
           {/* Corner accents */}
           <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#c9a227]/40 rounded-tl" />
           <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#c9a227]/40 rounded-tr" />
           <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#c9a227]/40 rounded-bl" />
           <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#c9a227]/40 rounded-br" />
-
           {/* Play button */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <div className="w-16 h-16 rounded-full bg-[#c9a227]/10 border-2 border-[#c9a227]/40 flex items-center justify-center transition-all duration-300 group-hover:bg-[#c9a227]/20 group-hover:border-[#c9a227]/70 group-hover:scale-110 animate-pulse-gold">
@@ -71,7 +69,6 @@ export default function Step1Welcome({ onNext }) {
             </div>
             <span className="text-[#555] text-xs tracking-widest uppercase">Intro Video</span>
           </div>
-
           {/* Bottom label */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent py-3 px-4">
             <p className="text-[10px] text-[#666] text-left tracking-wider uppercase">
@@ -97,9 +94,12 @@ export default function Step1Welcome({ onNext }) {
       </div>
 
       {/* Footer note */}
-      <p className="animate-fade-up delay-500 text-[#444] text-xs mt-6 tracking-wide">
+      <p className="animate-fade-up delay-500 text-[#444] text-xs mt-6 mb-6 tracking-wide">
         5 quick steps · Takes about 5 minutes
       </p>
+
+      {/* Discovery Mode panel */}
+      <DiscoveryPanel onApply={onDiscovery} />
     </div>
   );
 }

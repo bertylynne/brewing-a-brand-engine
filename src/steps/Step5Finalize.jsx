@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Send, CheckCircle, Scissors, Sparkles } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database } from 'lucide-react';
 
 const CONFETTI_COLORS = ['#c9a227', '#e8c96a', '#fff', '#d4a0c8', '#f0e0a0'];
 
@@ -41,25 +41,29 @@ function Confetti({ active }) {
 
 export default function Step5Finalize({ onBack, data }) {
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [confetti, setConfetti] = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [confetti, setConfetti]   = useState(false);
 
   const businessType = data.businessType || 'barbershop';
-  const isBarber = businessType === 'barbershop';
-  const services = data.services || [];
+  const isBarber     = businessType === 'barbershop';
+  const accent       = isBarber ? '#c9a227' : '#d4a0c8';
+
+  // Flatten service categories → [{name, price}] for the summary grid
+  const allServices = (data.serviceCategories || []).flatMap((cat) => cat.services);
+
+  const heroPreview = (data.heroText || '').slice(0, 90) + ((data.heroText || '').length > 90 ? '…' : '');
+
+  // Discovery fields
+  const hasDiscovery = data.businessName || data.address || data.phone || data.rating != null;
 
   const handleSubmit = async () => {
     setLoading(true);
-    // Simulate submission
     await new Promise((r) => setTimeout(r, 1800));
     setLoading(false);
     setSubmitted(true);
     setTimeout(() => setConfetti(true), 100);
     setTimeout(() => setConfetti(false), 4500);
   };
-
-  // Summary items for the review card
-  const heroPreview = (data.heroText || '').slice(0, 80) + ((data.heroText || '').length > 80 ? '…' : '');
 
   return (
     <div className="px-5 py-8 max-w-lg mx-auto w-full">
@@ -82,17 +86,19 @@ export default function Step5Finalize({ onBack, data }) {
           </div>
 
           {/* Summary card */}
-          <div className="animate-fade-up delay-100 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] overflow-hidden mb-6">
+          <div className="animate-fade-up delay-100 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] overflow-hidden mb-5">
+
             {/* Card header */}
             <div className="px-5 py-3.5 border-b border-[#1a1a1a] bg-[#0a0a0a] flex items-center justify-between">
-              <span className="text-xs text-[#666] uppercase tracking-widest font-semibold">Your Submission</span>
+              <span className="text-xs text-[#666] uppercase tracking-widest font-semibold">
+                {data.businessName || 'Your Submission'}
+              </span>
               <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border"
                 style={{
-                  borderColor: isBarber ? 'rgba(201,162,39,0.3)' : 'rgba(212,160,200,0.3)',
-                  background: isBarber ? 'rgba(201,162,39,0.08)' : 'rgba(212,160,200,0.08)',
-                  color: isBarber ? '#c9a227' : '#d4a0c8',
-                  border: '1px solid',
+                  borderColor: `${accent}40`,
+                  background: `${accent}0d`,
+                  color: accent,
                 }}
               >
                 {isBarber ? <Scissors className="w-2.5 h-2.5" /> : <Sparkles className="w-2.5 h-2.5" />}
@@ -100,16 +106,49 @@ export default function Step5Finalize({ onBack, data }) {
               </div>
             </div>
 
-            {/* Hero copy preview */}
+            {/* Discovery business info — only shown if data came from Discovery Mode */}
+            {hasDiscovery && (
+              <div className="px-5 py-3.5 border-b border-[#1a1a1a] bg-[#0a0a0a]">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Database className="w-3 h-3 text-[#c9a227]" />
+                  <p className="text-[10px] text-[#c9a227] uppercase tracking-widest font-semibold">Discovery Data</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {data.address && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3 h-3 text-[#555] flex-shrink-0" />
+                      <span className="text-[11px] text-[#888]">{data.address}</span>
+                    </div>
+                  )}
+                  {data.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3 h-3 text-[#555] flex-shrink-0" />
+                      <span className="text-[11px] text-[#888]">{data.phone}</span>
+                    </div>
+                  )}
+                  {data.rating != null && (
+                    <div className="flex items-center gap-2">
+                      <Star className="w-3 h-3 text-[#555] flex-shrink-0" />
+                      <span className="text-[11px] text-[#888]">
+                        {data.rating} stars
+                        {data.reviewCount != null && ` · ${data.reviewCount.toLocaleString()} reviews`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Hero copy */}
             <div className="px-5 py-4 border-b border-[#1a1a1a]">
               <p className="text-[10px] text-[#555] uppercase tracking-widest mb-1.5 font-semibold">Hero Copy</p>
-              <p className="text-[#888] text-xs leading-relaxed line-clamp-2">
+              <p className="text-[#777] text-xs leading-relaxed">
                 {heroPreview || <span className="text-[#444] italic">No hero text provided</span>}
               </p>
             </div>
 
-            {/* Hero image preview */}
-            <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center gap-3">
+            {/* Hero photo */}
+            <div className="px-5 py-3.5 border-b border-[#1a1a1a] flex items-center gap-3">
               <p className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">Hero Photo</p>
               {data.heroImage ? (
                 <div className="flex items-center gap-2 ml-auto">
@@ -121,30 +160,47 @@ export default function Step5Finalize({ onBack, data }) {
               )}
             </div>
 
-            {/* Services list */}
+            {/* Services — grouped by category */}
             <div className="px-5 py-4">
               <p className="text-[10px] text-[#555] uppercase tracking-widest mb-3 font-semibold">
-                Services ({services.length})
+                Services ({allServices.length})
               </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                {services.slice(0, 6).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between bg-[#111] rounded-lg px-2.5 py-1.5">
-                    <span className="text-[11px] text-[#888] truncate">{s.name || 'Unnamed'}</span>
-                    <span className="text-[11px] text-[#c9a227] font-mono ml-2 flex-shrink-0">${s.price || '—'}</span>
-                  </div>
-                ))}
-              </div>
-              {services.length > 6 && (
-                <p className="text-[11px] text-[#444] mt-2 text-center">+{services.length - 6} more services</p>
+
+              {data.serviceCategories ? (
+                <div className="flex flex-col gap-3">
+                  {data.serviceCategories.map((cat) => (
+                    <div key={cat.id}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <div className="w-1 h-3 rounded-full" style={{ background: accent }} />
+                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: `${accent}cc` }}>
+                          {cat.category}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        {cat.services.map((s) => (
+                          <div key={s.id} className="flex items-center justify-between bg-[#0a0a0a] border border-[#161616] rounded-lg px-2.5 py-1.5">
+                            <span className="text-[11px] text-[#777] truncate">{s.name || 'Unnamed'}</span>
+                            <span className="text-[11px] font-mono ml-2 flex-shrink-0" style={{ color: accent }}>
+                              ${s.price || '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-[#444] italic">No services added</p>
               )}
             </div>
           </div>
 
-          {/* Submit section */}
-          <div className="animate-fade-up delay-200 mb-8">
-            <div className="rounded-xl border border-[#1e1e1e] bg-[#0d0d0d] p-4 mb-4">
+          {/* Submit */}
+          <div className="animate-fade-up delay-200 mb-6">
+            <div className="rounded-xl border border-[#1a1a1a] bg-[#0d0d0d] p-4 mb-4">
               <p className="text-[12px] text-[#555] leading-relaxed text-center">
-                By submitting, you're sending this information to <span className="text-[#888] font-medium">CBA Solutions</span> to finalize your website build. You'll receive a confirmation shortly.
+                By submitting, you're sending this information to{' '}
+                <span className="text-[#888] font-medium">CBA Solutions</span> to finalise your website build. You'll receive a confirmation shortly.
               </p>
             </div>
 
@@ -170,7 +226,7 @@ export default function Step5Finalize({ onBack, data }) {
             </button>
           </div>
 
-          <div className="animate-fade-up delay-300 flex gap-3">
+          <div className="animate-fade-up delay-300">
             <button
               onClick={onBack}
               className="flex items-center gap-2 px-5 py-3 rounded-full border border-[#222] text-[#666] text-sm font-medium hover:border-[#333] hover:text-[#888] transition-all active:scale-95"
@@ -181,7 +237,7 @@ export default function Step5Finalize({ onBack, data }) {
           </div>
         </>
       ) : (
-        /* Success state */
+        /* ── Success state ────────────────────────────────────────────── */
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-scale-in">
           {/* Success ring */}
           <div
@@ -202,23 +258,20 @@ export default function Step5Finalize({ onBack, data }) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeDasharray="100"
-                style={{
-                  animation: 'checkDraw 0.5s ease 0.3s both',
-                }}
+                style={{ animation: 'checkDraw 0.5s ease 0.3s both' }}
               />
             </svg>
           </div>
 
-          {/* Heading */}
           <div className="animate-fade-up delay-200 mb-2">
             <h2 className="text-3xl font-bold text-white tracking-tight">You're all set! 🎉</h2>
           </div>
 
           <p className="animate-fade-up delay-300 text-[#888] text-base max-w-[280px] leading-relaxed mb-8">
-            Your information has been submitted to <span className="text-[#c9a227] font-medium">CBA Solutions</span>. We'll get your website live shortly.
+            Your information has been submitted to{' '}
+            <span className="text-[#c9a227] font-medium">CBA Solutions</span>. We'll get your website live shortly.
           </p>
 
-          {/* Details card */}
           <div className="animate-fade-up delay-400 w-full max-w-sm rounded-2xl border border-[#c9a227]/20 bg-[#c9a227]/5 p-5 mb-8">
             <p className="text-[11px] text-[#c9a227] uppercase tracking-widest font-semibold mb-3">What happens next</p>
             <div className="flex flex-col gap-2.5 text-left">
@@ -241,7 +294,6 @@ export default function Step5Finalize({ onBack, data }) {
             </div>
           </div>
 
-          {/* CBA branding */}
           <div className="animate-fade-up delay-500 flex items-center gap-2">
             <div className="w-1 h-1 rounded-full bg-[#c9a227]" />
             <p className="text-[11px] text-[#555] tracking-widest uppercase">CBA Solutions</p>
