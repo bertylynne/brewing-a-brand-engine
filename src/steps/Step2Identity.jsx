@@ -1,13 +1,135 @@
 import { useState, useRef } from 'react';
-import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type } from 'lucide-react';
+import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles } from 'lucide-react';
 
 const DEFAULT_HERO_TEXT = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
 
 const CHAR_LIMIT = 600;
 const TAGLINE_LIMIT = 80;
+const MAX_PHOTOS = 8;
+
+const PHOTO_CATEGORIES = [
+  {
+    id: 'exterior',
+    label: 'Exterior',
+    icon: Store,
+    hint: 'Storefront / outside view',
+    example: 'e.g. your shopfront, signage, parking area',
+  },
+  {
+    id: 'interior',
+    label: 'Interior',
+    icon: Sofa,
+    hint: 'Inside the space',
+    example: 'e.g. seating area, waiting room, ambience',
+  },
+  {
+    id: 'highlight',
+    label: 'Highlight',
+    icon: Sparkles,
+    hint: 'Unique / standout feature',
+    example: 'e.g. décor, special equipment, artwork, vibe',
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    icon: ImageIcon,
+    hint: 'Anything else',
+    example: 'e.g. team photo, product display, event',
+  },
+];
 
 function wordCount(str) {
   return str.trim() === '' ? 0 : str.trim().split(/\s+/).length;
+}
+
+function PhotoSlot({ photo, categoryDef, onUpload, onRemove }) {
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef();
+  const Icon = categoryDef.icon;
+
+  const handleFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    onUpload({ id: photo.id, category: photo.category, url: URL.createObjectURL(file), name: file.name });
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {/* Category badge */}
+      <div className="flex items-center gap-1.5">
+        <Icon className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          {categoryDef.label}
+        </span>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+        onClick={() => !photo.url && fileRef.current?.click()}
+        className="relative rounded-xl border-2 border-dashed overflow-hidden transition-all duration-200"
+        style={{
+          aspectRatio: '4/3',
+          cursor: photo.url ? 'default' : 'pointer',
+          borderColor: dragging ? 'var(--gold)' : photo.url ? 'rgba(201,162,39,0.4)' : 'var(--border)',
+          background: dragging ? 'rgba(201,162,39,0.06)' : 'var(--bg-raised)',
+        }}
+      >
+        {photo.url ? (
+          <>
+            <img src={photo.url} alt={categoryDef.label} className="w-full h-full object-cover" />
+            {/* Overlay: replace */}
+            <div
+              className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer gap-1"
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="w-4 h-4 text-white" />
+              <span className="text-[10px] text-white/80 font-medium">Replace</span>
+            </div>
+            {/* Filename strip */}
+            <div className="absolute bottom-0 inset-x-0 px-2 py-1.5" style={{ background: 'linear-gradient(to top, rgba(15,28,40,0.85), transparent)' }}>
+              <p className="text-[10px] text-white/70 truncate">{photo.name}</p>
+            </div>
+            {/* Remove button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(photo.id); }}
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-opacity bg-black/60 hover:bg-red-500/80"
+            >
+              <X className="w-3 h-3 text-white" />
+            </button>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center">
+            {dragging ? (
+              <>
+                <Upload className="w-5 h-5" style={{ color: 'var(--gold)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--gold)' }}>Drop here</span>
+              </>
+            ) : (
+              <>
+                <div
+                  className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                  style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)' }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: 'var(--text-faint)' }} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                    {categoryDef.hint}
+                  </p>
+                  <p className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--text-faint)' }}>
+                    {categoryDef.example}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
+      </div>
+    </div>
+  );
 }
 
 export default function Step2Identity({ onNext, onBack, data, setData }) {
@@ -15,6 +137,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
   const [logoDragging, setLogoDragging] = useState(false);
   const heroFileRef = useRef();
   const logoFileRef = useRef();
+  const addFileRef = useRef();
 
   const handleTextChange = (e) => setData({ ...data, heroText: e.target.value });
 
@@ -26,6 +149,44 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
   const handleLogoFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     setData({ ...data, logo: URL.createObjectURL(file), logoName: file.name });
+  };
+
+  // Brand Photos helpers
+  const brandPhotos = data.brandPhotos || [];
+
+  const addPhoto = (file, category = 'other') => {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (brandPhotos.length >= MAX_PHOTOS) return;
+    const id = `bp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setData({
+      ...data,
+      brandPhotos: [...brandPhotos, { id, category, url: URL.createObjectURL(file), name: file.name }],
+    });
+  };
+
+  const updatePhoto = (updated) => {
+    setData({
+      ...data,
+      brandPhotos: brandPhotos.map((p) => (p.id === updated.id ? { ...p, url: updated.url, name: updated.name } : p)),
+    });
+  };
+
+  const removePhoto = (id) => {
+    setData({ ...data, brandPhotos: brandPhotos.filter((p) => p.id !== id) });
+  };
+
+  // Suggest a category for new uploads based on what's least filled
+  const suggestCategory = () => {
+    const counts = {};
+    PHOTO_CATEGORIES.forEach((c) => { counts[c.id] = 0; });
+    brandPhotos.forEach((p) => { if (counts[p.category] !== undefined) counts[p.category]++; });
+    return PHOTO_CATEGORIES.reduce((min, c) => (counts[c.id] < counts[min.id] ? c : min), PHOTO_CATEGORIES[0]).id;
+  };
+
+  const handleAddFiles = (files) => {
+    Array.from(files).forEach((file) => {
+      addPhoto(file, suggestCategory());
+    });
   };
 
   const text       = data.heroText || DEFAULT_HERO_TEXT;
@@ -57,7 +218,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
           <div className="h-px w-8" style={{ background: 'var(--gold)' }} />
         </div>
         <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Review the opening statement for your site. Supply your logo, tagline, and brand photo if you have them ready.
+          Review the opening statement for your site. Supply your logo, tagline, and brand photos if you have them ready.
         </p>
       </div>
 
@@ -97,7 +258,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
             onChange={handleTextChange}
             rows={6}
             className="w-full bg-transparent text-sm leading-relaxed p-4 pb-5 resize-none outline-none rounded-xl"
-            style={{ color: 'var(--text-primary)', '::placeholder': { color: 'var(--text-faint)' } }}
+            style={{ color: 'var(--text-primary)' }}
             placeholder="Write your hero section copy here..."
           />
           <div className="absolute bottom-0 inset-x-0 h-[3px] rounded-b-xl overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
@@ -239,12 +400,11 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         </div>
       </div>
 
-      {/* Brand Photo */}
-      <div className="animate-fade-up delay-300 mb-8">
+      {/* Hero Photo */}
+      <div className="animate-fade-up delay-300 mb-6">
         <label className="block text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-          Brand Photo
+          Hero Photo
         </label>
-
         <div
           onDragOver={(e) => { e.preventDefault(); setHeroDragging(true); }}
           onDragLeave={() => setHeroDragging(false)}
@@ -296,9 +456,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
             </div>
           )}
         </div>
-
         <input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleHeroFile(e.target.files[0])} />
-
         {!data.heroImage && (
           <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--text-faint)' }}>
             No photo yet? Our team will source a professional placeholder — you can supply yours before launch.
@@ -306,8 +464,105 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         )}
       </div>
 
+      {/* ── Brand Photos ──────────────────────────────────── */}
+      <div className="animate-fade-up delay-400 mb-8">
+        {/* Section header */}
+        <div className="flex items-end justify-between mb-1">
+          <label className="block text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+            Brand Photos
+          </label>
+          <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--text-faint)' }}>
+            {brandPhotos.length}<span style={{ color: 'var(--border)' }}>/{MAX_PHOTOS}</span>
+          </span>
+        </div>
+        <p className="text-[12px] mb-4 leading-relaxed" style={{ color: 'var(--text-faint)' }}>
+          Help us capture the feel of your business. Upload photos of your storefront, interior, or anything that showcases your space.
+        </p>
+
+        {/* Category legend */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {PHOTO_CATEGORIES.map((cat) => {
+            const CatIcon = cat.icon;
+            return (
+              <div
+                key={cat.id}
+                className="flex items-start gap-2 rounded-lg px-3 py-2.5"
+                style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)' }}
+              >
+                <CatIcon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--gold)' }} />
+                <div>
+                  <p className="text-[11px] font-semibold leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                    {cat.label}
+                  </p>
+                  <p className="text-[10px] leading-tight mt-0.5" style={{ color: 'var(--text-faint)' }}>
+                    {cat.example}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Uploaded photos grid */}
+        {brandPhotos.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {brandPhotos.map((photo) => {
+              const catDef = PHOTO_CATEGORIES.find((c) => c.id === photo.category) || PHOTO_CATEGORIES[3];
+              return (
+                <PhotoSlot
+                  key={photo.id}
+                  photo={photo}
+                  categoryDef={catDef}
+                  onUpload={updatePhoto}
+                  onRemove={removePhoto}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Add photos CTA */}
+        {brandPhotos.length < MAX_PHOTOS && (
+          <div>
+            <button
+              onClick={() => addFileRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-4 text-sm font-medium transition-all duration-200"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--bg-raised)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(201,162,39,0.5)';
+                e.currentTarget.style.color = 'var(--gold)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Photos ({MAX_PHOTOS - brandPhotos.length} remaining)
+            </button>
+            <input
+              ref={addFileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleAddFiles(e.target.files)}
+            />
+            <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--text-faint)' }}>
+              You can add up to {MAX_PHOTOS} photos · JPG, PNG, WebP · Drag & drop also works
+            </p>
+          </div>
+        )}
+
+        {brandPhotos.length === MAX_PHOTOS && (
+          <p className="text-[11px] text-center" style={{ color: 'var(--text-faint)' }}>
+            Maximum {MAX_PHOTOS} photos reached — remove one to add another.
+          </p>
+        )}
+      </div>
+
       {/* Navigation */}
-      <div className="animate-fade-up delay-400 flex gap-3">
+      <div className="animate-fade-up delay-500 flex gap-3">
         <button
           onClick={onBack}
           className="flex items-center gap-2 px-5 py-3.5 rounded-full border text-sm font-medium transition-all active:scale-95"

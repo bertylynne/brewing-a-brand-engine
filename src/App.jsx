@@ -16,6 +16,7 @@ const DEFAULT_DATA = {
   heroImageName:     null,
   logo:              null,
   logoName:          null,
+  brandPhotos:       [],   // [{ id, category, file, url, name }]
   tagline:           '',
   businessType:      null,
   serviceCategories: null,
