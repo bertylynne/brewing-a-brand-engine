@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock } from 'lucide-react';
 
 const CONFETTI_COLORS = ['#c9a227', '#e8c96a', '#fff', '#d4a0c8', '#f0e0a0'];
 
@@ -176,11 +176,19 @@ export default function Step5Finalize({ onBack, data }) {
                           {cat.category}
                         </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-1">
+                      <div className="flex flex-col gap-1">
                         {cat.services.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between bg-[#0a0a0a] border border-[#161616] rounded-lg px-2.5 py-1.5">
-                            <span className="text-[11px] text-[#777] truncate">{s.name || 'Unnamed'}</span>
-                            <span className="text-[11px] font-mono ml-2 flex-shrink-0" style={{ color: accent }}>
+                          <div key={s.id} className="flex items-center bg-[#0a0a0a] border border-[#161616] rounded-lg px-2.5 py-1.5 gap-2">
+                            <span className="text-[11px] text-[#777] truncate flex-1">{s.name || 'Unnamed'}</span>
+                            {/* Duration */}
+                            {s.duration && (
+                              <span className="flex items-center gap-1 text-[10px] text-[#555] font-mono flex-shrink-0">
+                                <Clock className="w-2.5 h-2.5" />
+                                {s.duration}m
+                              </span>
+                            )}
+                            {/* Price */}
+                            <span className="text-[11px] font-mono flex-shrink-0" style={{ color: accent }}>
                               ${s.price || '—'}
                             </span>
                           </div>
