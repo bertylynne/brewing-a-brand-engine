@@ -11,102 +11,102 @@ function wordCount(str) {
 }
 
 export default function Step2Identity({ onNext, onBack, data, setData }) {
-  const [heroDragging, setHeroDragging]   = useState(false);
-  const [logoDragging, setLogoDragging]   = useState(false);
+  const [heroDragging, setHeroDragging] = useState(false);
+  const [logoDragging, setLogoDragging] = useState(false);
   const heroFileRef = useRef();
   const logoFileRef = useRef();
 
-  const handleTextChange = (e) => {
-    setData({ ...data, heroText: e.target.value });
-  };
+  const handleTextChange = (e) => setData({ ...data, heroText: e.target.value });
 
   const handleHeroFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file);
-    setData({ ...data, heroImage: url, heroImageName: file.name });
+    setData({ ...data, heroImage: URL.createObjectURL(file), heroImageName: file.name });
   };
 
   const handleLogoFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file);
-    setData({ ...data, logo: url, logoName: file.name });
+    setData({ ...data, logo: URL.createObjectURL(file), logoName: file.name });
   };
 
-  const handleHeroDrop = (e) => {
-    e.preventDefault();
-    setHeroDragging(false);
-    handleHeroFile(e.dataTransfer.files[0]);
-  };
-
-  const handleLogoDrop = (e) => {
-    e.preventDefault();
-    setLogoDragging(false);
-    handleLogoFile(e.dataTransfer.files[0]);
-  };
-
-  const text      = data.heroText || DEFAULT_HERO_TEXT;
-  const charCount = text.length;
-  const words     = wordCount(text);
-  const tagline   = data.tagline || '';
+  const text       = data.heroText || DEFAULT_HERO_TEXT;
+  const charCount  = text.length;
+  const words      = wordCount(text);
+  const tagline    = data.tagline || '';
   const taglineLen = tagline.length;
 
-  const nearLimit  = charCount >= 500;
-  const overLimit  = charCount > CHAR_LIMIT;
-  const counterColor = overLimit ? 'text-red-400' : nearLimit ? 'text-[#c9a227]' : 'text-[#555]';
-  const barColor     = overLimit ? 'bg-red-500'   : nearLimit ? 'bg-[#c9a227]'   : 'bg-[#333]';
-  const borderClass  = overLimit
-    ? 'border-red-500/60 shadow-[0_0_0_3px_rgba(239,68,68,0.12)]'
-    : 'border-[#222] focus-within:border-[#c9a227]/50';
+  const nearLimit = charCount >= 500;
+  const overLimit = charCount > CHAR_LIMIT;
+
+  const textareaBorder = overLimit
+    ? '2px solid rgba(239,68,68,0.6)'
+    : 'none';
 
   return (
     <div className="px-5 py-8 max-w-lg mx-auto w-full">
-      {/* Section header */}
+      {/* Header */}
       <div className="animate-fade-up mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-full bg-[#c9a227]/10 border border-[#c9a227]/30 flex items-center justify-center">
-            <span className="text-[9px] font-bold text-[#c9a227]">02</span>
-          </div>
-          <span className="text-[11px] text-[#666] tracking-widest uppercase font-medium">Brand Identity</span>
+        <p className="text-[11px] tracking-[0.2em] uppercase font-semibold mb-2" style={{ color: 'var(--coral)' }}>
+          — Step 02 —
+        </p>
+        <h2 className="font-serif-display text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          Brand Identity
+        </h2>
+        <div className="flex items-center gap-3 my-3">
+          <div className="h-px w-8" style={{ background: 'var(--gold)' }} />
+          <div className="w-1 h-1 rounded-full" style={{ background: 'var(--gold)' }} />
+          <div className="h-px w-8" style={{ background: 'var(--gold)' }} />
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Confirm Your Message</h2>
-        <p className="text-[#666] text-sm mt-1 leading-relaxed">
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           Review the opening statement for your site. Supply your logo, tagline, and brand photo if you have them ready.
         </p>
       </div>
 
-      {/* Hero text editor */}
+      {/* Opening Statement */}
       <div className="animate-fade-up delay-100 mb-6">
         <div className="flex justify-between items-center mb-2">
-          <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">Opening Statement</label>
+          <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+            Opening Statement
+          </label>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#444] font-mono hidden sm:inline">
+            <span className="text-[11px] font-mono hidden sm:inline" style={{ color: 'var(--text-faint)' }}>
               {words} words
             </span>
-            <span className="text-[#333]">·</span>
+            <span style={{ color: 'var(--border)' }}>·</span>
             <div className="flex items-center gap-1">
               {(nearLimit || overLimit) && (
-                <AlertCircle className={`w-3.5 h-3.5 flex-shrink-0 ${overLimit ? 'text-red-400' : 'text-[#c9a227]'}`} />
+                <AlertCircle className={`w-3.5 h-3.5 flex-shrink-0 ${overLimit ? 'text-red-400' : ''}`}
+                  style={overLimit ? {} : { color: 'var(--gold)' }} />
               )}
-              <span className={`text-xs font-mono tabular-nums transition-colors duration-200 ${counterColor}`}>
+              <span
+                className="text-xs font-mono tabular-nums transition-colors duration-200"
+                style={{ color: overLimit ? '#f87171' : nearLimit ? 'var(--gold)' : 'var(--text-faint)' }}
+              >
                 {charCount}
-                <span className="text-[#444]">/{CHAR_LIMIT}</span>
+                <span style={{ color: 'var(--border)' }}>/{CHAR_LIMIT}</span>
               </span>
             </div>
           </div>
         </div>
 
-        <div className={`relative rounded-xl border transition-all duration-200 ${borderClass} bg-[#0e0e0e]`}>
+        <div
+          className="relative rounded-xl transition-all duration-200"
+          style={{ background: 'var(--bg-raised)', border: overLimit ? textareaBorder : `1px solid var(--border)` }}
+        >
           <textarea
             value={text}
             onChange={handleTextChange}
             rows={6}
-            className="w-full bg-transparent text-[#ccc] text-sm leading-relaxed p-4 pb-5 resize-none outline-none rounded-xl placeholder-[#444]"
+            className="w-full bg-transparent text-sm leading-relaxed p-4 pb-5 resize-none outline-none rounded-xl"
+            style={{ color: 'var(--text-primary)', '::placeholder': { color: 'var(--text-faint)' } }}
             placeholder="Write your hero section copy here..."
           />
-          <div className="absolute bottom-0 inset-x-0 h-[3px] rounded-b-xl overflow-hidden bg-[#1a1a1a]">
+          <div className="absolute bottom-0 inset-x-0 h-[3px] rounded-b-xl overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
             <div
-              className={`h-full transition-all duration-300 ${barColor}`}
-              style={{ width: `${Math.min((charCount / CHAR_LIMIT) * 100, 100)}%` }}
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${Math.min((charCount / CHAR_LIMIT) * 100, 100)}%`,
+                background: overLimit ? '#ef4444' : nearLimit ? 'var(--gold)' : 'var(--border)',
+              }}
             />
           </div>
         </div>
@@ -120,42 +120,42 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
 
         <button
           onClick={() => setData({ ...data, heroText: DEFAULT_HERO_TEXT })}
-          className="mt-2 flex items-center gap-1.5 text-[11px] text-[#555] hover:text-[#c9a227] transition-colors"
+          className="mt-2 flex items-center gap-1.5 text-[11px] transition-colors"
+          style={{ color: 'var(--text-faint)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--gold)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}
         >
           <RefreshCw className="w-3 h-3" />
           Reset to default
         </button>
       </div>
 
-      {/* ── Logo + Tagline row ── */}
+      {/* Logo + Tagline */}
       <div className="animate-fade-up delay-200 mb-6">
         <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
 
-          {/* Logo upload — square */}
+          {/* Logo upload */}
           <div>
-            <label className="block text-xs text-[#888] uppercase tracking-wider font-semibold mb-2">
+            <label className="block text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
               Logo
             </label>
             <div
               onDragOver={(e) => { e.preventDefault(); setLogoDragging(true); }}
               onDragLeave={() => setLogoDragging(false)}
-              onDrop={handleLogoDrop}
+              onDrop={(e) => { e.preventDefault(); setLogoDragging(false); handleLogoFile(e.dataTransfer.files[0]); }}
               onClick={() => logoFileRef.current?.click()}
-              className={`relative w-[88px] h-[88px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
+              className="relative w-[88px] h-[88px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center"
+              style={
                 logoDragging
-                  ? 'border-[#c9a227] bg-[#c9a227]/8'
+                  ? { borderColor: 'var(--gold)', background: 'rgba(201,162,39,0.08)' }
                   : data.logo
-                  ? 'border-[#c9a227]/40 bg-[#111]'
-                  : 'border-[#222] bg-[#0e0e0e] hover:border-[#333] hover:bg-[#111]'
-              }`}
+                  ? { borderColor: 'rgba(201,162,39,0.4)', background: 'var(--bg-raised)' }
+                  : { borderColor: 'var(--border)', background: 'var(--bg-raised)' }
+              }
             >
               {data.logo ? (
                 <>
-                  <img
-                    src={data.logo}
-                    alt="Logo"
-                    className="w-full h-full object-contain p-2"
-                  />
+                  <img src={data.logo} alt="Logo" className="w-full h-full object-contain p-2" />
                   <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity gap-1">
                     <Upload className="w-4 h-4 text-white" />
                     <span className="text-[10px] text-white/80 font-medium">Replace</span>
@@ -165,31 +165,28 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
                 <div className="flex flex-col items-center gap-1.5 p-2 text-center">
                   {logoDragging ? (
                     <>
-                      <Upload className="w-5 h-5 text-[#c9a227]" />
-                      <span className="text-[9px] text-[#c9a227] font-medium leading-tight">Drop here</span>
+                      <Upload className="w-5 h-5" style={{ color: 'var(--gold)' }} />
+                      <span className="text-[9px] font-medium leading-tight" style={{ color: 'var(--gold)' }}>Drop here</span>
                     </>
                   ) : (
                     <>
-                      <div className="w-8 h-8 rounded-lg border border-[#2a2a2a] bg-[#161616] flex items-center justify-center">
-                        <ImageIcon className="w-4 h-4 text-[#444]" />
+                      <div className="w-8 h-8 rounded-lg border flex items-center justify-center" style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)' }}>
+                        <ImageIcon className="w-4 h-4" style={{ color: 'var(--text-faint)' }} />
                       </div>
-                      <span className="text-[9px] text-[#555] leading-tight">Upload<br />logo</span>
+                      <span className="text-[9px] leading-tight" style={{ color: 'var(--text-faint)' }}>Upload<br />logo</span>
                     </>
                   )}
                 </div>
               )}
             </div>
-            <input
-              ref={logoFileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleLogoFile(e.target.files[0])}
-            />
+            <input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoFile(e.target.files[0])} />
             {data.logo && (
               <button
                 onClick={(e) => { e.stopPropagation(); setData({ ...data, logo: null, logoName: null }); }}
-                className="mt-1.5 text-[10px] text-[#444] hover:text-red-400 transition-colors w-full text-center"
+                className="mt-1.5 text-[10px] transition-colors w-full text-center"
+                style={{ color: 'var(--text-faint)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}
               >
                 Remove
               </button>
@@ -199,93 +196,100 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
           {/* Tagline */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">
+              <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
                 Tagline
               </label>
-              <span className={`text-[11px] font-mono tabular-nums transition-colors ${
-                taglineLen > TAGLINE_LIMIT ? 'text-red-400' : taglineLen > 60 ? 'text-[#c9a227]' : 'text-[#444]'
-              }`}>
-                {taglineLen}<span className="text-[#333]">/{TAGLINE_LIMIT}</span>
+              <span
+                className="text-[11px] font-mono tabular-nums transition-colors"
+                style={{ color: taglineLen > TAGLINE_LIMIT ? '#f87171' : taglineLen > 60 ? 'var(--gold)' : 'var(--text-faint)' }}
+              >
+                {taglineLen}<span style={{ color: 'var(--border)' }}>/{TAGLINE_LIMIT}</span>
               </span>
             </div>
-            <div className="relative bg-[#0e0e0e] border border-[#222] rounded-xl focus-within:border-[#c9a227]/50 transition-all duration-200">
+            <div
+              className="relative rounded-xl transition-all duration-200"
+              style={{ background: 'var(--bg-raised)', border: `1px solid var(--border)` }}
+            >
               <div className="flex items-start gap-2.5 px-3 pt-3 pb-2">
-                <Type className="w-3.5 h-3.5 text-[#444] flex-shrink-0 mt-0.5" />
+                <Type className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
                 <textarea
                   value={tagline}
                   onChange={(e) => setData({ ...data, tagline: e.target.value })}
                   rows={3}
                   maxLength={TAGLINE_LIMIT + 10}
                   placeholder={`e.g. "Where Every Cut Tells a Story"`}
-                  className="flex-1 bg-transparent text-[#ccc] text-sm leading-relaxed resize-none outline-none placeholder-[#333] min-w-0"
+                  className="flex-1 bg-transparent text-sm leading-relaxed resize-none outline-none min-w-0"
+                  style={{ color: 'var(--text-primary)' }}
                 />
               </div>
-              {/* Progress bar */}
-              <div className="h-[2px] rounded-b-xl overflow-hidden bg-[#1a1a1a]">
+              <div className="h-[2px] rounded-b-xl overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
                 <div
-                  className={`h-full transition-all duration-300 ${
-                    taglineLen > TAGLINE_LIMIT ? 'bg-red-500' : taglineLen > 60 ? 'bg-[#c9a227]' : 'bg-[#333]'
-                  }`}
-                  style={{ width: `${Math.min((taglineLen / TAGLINE_LIMIT) * 100, 100)}%` }}
+                  className="h-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min((taglineLen / TAGLINE_LIMIT) * 100, 100)}%`,
+                    background: taglineLen > TAGLINE_LIMIT ? '#ef4444' : taglineLen > 60 ? 'var(--gold)' : 'var(--border)',
+                  }}
                 />
               </div>
             </div>
-            <p className="text-[11px] text-[#444] mt-1.5 leading-relaxed">
+            <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: 'var(--text-faint)' }}>
               A short phrase that captures your brand. Leave blank if you don't have one yet.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Hero photo upload */}
+      {/* Brand Photo */}
       <div className="animate-fade-up delay-300 mb-8">
-        <label className="block text-xs text-[#888] uppercase tracking-wider font-semibold mb-2">
+        <label className="block text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
           Brand Photo
         </label>
 
         <div
           onDragOver={(e) => { e.preventDefault(); setHeroDragging(true); }}
           onDragLeave={() => setHeroDragging(false)}
-          onDrop={handleHeroDrop}
+          onDrop={(e) => { e.preventDefault(); setHeroDragging(false); handleHeroFile(e.dataTransfer.files[0]); }}
           onClick={() => heroFileRef.current?.click()}
-          className={`relative rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden ${
+          className="relative rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden"
+          style={
             heroDragging
-              ? 'border-[#c9a227] bg-[#c9a227]/5'
+              ? { borderColor: 'var(--gold)', background: 'rgba(201,162,39,0.05)' }
               : data.heroImage
-              ? 'border-[#c9a227]/40 bg-[#111]'
-              : 'border-[#222] bg-[#0e0e0e] hover:border-[#333] hover:bg-[#111]'
-          }`}
+              ? { borderColor: 'rgba(201,162,39,0.4)', background: 'var(--bg-raised)' }
+              : { borderColor: 'var(--border)', background: 'var(--bg-raised)' }
+          }
         >
           {data.heroImage ? (
             <div className="relative aspect-video">
-              <img
-                src={data.heroImage}
-                alt="Hero"
-                className="w-full h-full object-cover"
-              />
+              <img src={data.heroImage} alt="Hero" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                 <Upload className="w-6 h-6 text-white mb-1" />
                 <span className="text-white text-xs">Replace image</span>
               </div>
               <div className="absolute bottom-2 left-2 right-2">
                 <div className="bg-black/60 backdrop-blur rounded-lg px-3 py-1.5 flex items-center gap-2">
-                  <ImageIcon className="w-3 h-3 text-[#c9a227]" />
+                  <ImageIcon className="w-3 h-3" style={{ color: 'var(--gold)' }} />
                   <span className="text-[11px] text-white/80 truncate">{data.heroImageName}</span>
                 </div>
               </div>
             </div>
           ) : (
             <div className="aspect-video flex flex-col items-center justify-center gap-3 p-8">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-200 ${
-                heroDragging ? 'border-[#c9a227] bg-[#c9a227]/10' : 'border-[#2a2a2a] bg-[#161616]'
-              }`}>
-                <Upload className={`w-6 h-6 transition-colors ${heroDragging ? 'text-[#c9a227]' : 'text-[#444]'}`} />
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-200"
+                style={
+                  heroDragging
+                    ? { borderColor: 'var(--gold)', background: 'rgba(201,162,39,0.1)' }
+                    : { borderColor: 'var(--border)', background: 'var(--bg-surface)' }
+                }
+              >
+                <Upload className="w-6 h-6 transition-colors" style={{ color: heroDragging ? 'var(--gold)' : 'var(--text-faint)' }} />
               </div>
               <div className="text-center">
-                <p className="text-[#888] text-sm font-medium">
+                <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                   {heroDragging ? 'Drop your image here' : 'Upload hero photo'}
                 </p>
-                <p className="text-[#444] text-xs mt-0.5">
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
                   Drag & drop or click to browse · JPG, PNG, WebP
                 </p>
               </div>
@@ -293,16 +297,10 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
           )}
         </div>
 
-        <input
-          ref={heroFileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handleHeroFile(e.target.files[0])}
-        />
+        <input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleHeroFile(e.target.files[0])} />
 
         {!data.heroImage && (
-          <p className="text-[11px] text-[#444] mt-2 text-center">
+          <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--text-faint)' }}>
             No photo yet? Our team will source a professional placeholder — you can supply yours before launch.
           </p>
         )}
@@ -312,7 +310,8 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
       <div className="animate-fade-up delay-400 flex gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3.5 rounded-full border border-[#222] text-[#666] text-sm font-medium hover:border-[#333] hover:text-[#888] transition-all active:scale-95"
+          className="flex items-center gap-2 px-5 py-3.5 rounded-full border text-sm font-medium transition-all active:scale-95"
+          style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
         >
           <ChevronLeft className="w-4 h-4" />
           Back
@@ -321,12 +320,14 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
           onClick={onNext}
           disabled={overLimit}
           title={overLimit ? 'Trim your copy to under 600 characters to continue' : undefined}
-          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-black font-semibold text-sm transition-all duration-200 shadow-md ${
+          className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-95"
+          style={
             overLimit
-              ? 'opacity-40 cursor-not-allowed bg-[#444]'
-              : 'hover:scale-[1.02] active:scale-95 hover:shadow-[#c9a227]/20'
-          }`}
-          style={overLimit ? {} : { background: 'linear-gradient(135deg, #c9a227 0%, #e8c96a 60%, #c9a227 100%)' }}
+              ? { background: 'var(--bg-raised)', color: 'var(--text-faint)', cursor: 'not-allowed' }
+              : { background: 'var(--coral)', boxShadow: '0 4px 16px rgba(232,112,90,0.3)' }
+          }
+          onMouseEnter={(e) => { if (!overLimit) e.currentTarget.style.background = 'var(--coral-light)'; }}
+          onMouseLeave={(e) => { if (!overLimit) e.currentTarget.style.background = 'var(--coral)'; }}
         >
           Continue
           <ChevronRight className="w-4 h-4" />

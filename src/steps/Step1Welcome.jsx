@@ -3,76 +3,83 @@ import DiscoveryPanel from '../components/DiscoveryPanel';
 
 export default function Step1Welcome({ onNext, onDiscovery }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center">
+    <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center relative overflow-hidden">
+
+      {/* Background texture grid */}
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+
       {/* Agency badge */}
-      <div className="animate-fade-up mb-8">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#c9a227]/30 bg-[#c9a227]/5">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#c9a227] animate-pulse" />
-          <span className="text-[11px] tracking-[0.18em] uppercase text-[#c9a227] font-semibold">
+      <div className="animate-fade-up mb-8 relative">
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border" style={{ borderColor: 'rgba(201,162,39,0.35)', background: 'rgba(201,162,39,0.07)' }}>
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--gold)' }} />
+          <span className="text-[11px] tracking-[0.18em] uppercase font-semibold" style={{ color: 'var(--gold)' }}>
             CBA Solutions — Client Portal
           </span>
         </div>
       </div>
 
       {/* Heading */}
-      <div className="animate-fade-up delay-100 mb-3">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight">
+      <div className="animate-fade-up delay-100 mb-4 relative">
+        <p className="text-[11px] tracking-[0.2em] uppercase font-semibold mb-3" style={{ color: 'var(--coral)' }}>
+          — Brand Brief Consultation —
+        </p>
+        <h1 className="font-serif-display text-4xl sm:text-5xl font-bold leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Your Brand Brief
           <br />
-          <span
-            className="inline-block"
-            style={{
-              background: 'linear-gradient(135deg, #c9a227 0%, #e8c96a 50%, #c9a227 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundSize: '200% auto',
-            }}
-          >
-            Consultation
-          </span>
+          <span style={{ color: 'var(--gold)' }}>Consultation</span>
         </h1>
+        {/* Decorative rule */}
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <div className="h-px w-12" style={{ background: 'var(--gold)' }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--gold)' }} />
+          <div className="h-px w-12" style={{ background: 'var(--gold)' }} />
+        </div>
       </div>
 
       {/* Subtext */}
-      <p className="animate-fade-up delay-200 text-[#888] text-base max-w-[320px] leading-relaxed mb-10">
-        We'll collect your brand information so our team can build your website <span className="text-[#bbb]">professionally and precisely</span>.
+      <p className="animate-fade-up delay-200 text-base max-w-[320px] leading-relaxed mb-10 italic" style={{ color: 'var(--text-secondary)' }}>
+        We'll collect your brand information so our team can build your website <span style={{ color: 'var(--text-primary)' }}>professionally and precisely</span>.
       </p>
 
       {/* Video Placeholder */}
       <div className="animate-fade-up delay-300 w-full max-w-md mb-10">
-        <div className="relative rounded-2xl overflow-hidden border border-[#222] bg-[#111] aspect-video shadow-2xl group">
-          {/* Noise texture */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            }}
-          />
-          {/* Grid lines */}
+        <div
+          className="relative rounded-2xl overflow-hidden aspect-video shadow-2xl group border"
+          style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}
+        >
+          {/* Grid overlay */}
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
-              backgroundImage:
-                'linear-gradient(#c9a227 1px, transparent 1px), linear-gradient(90deg, #c9a227 1px, transparent 1px)',
+              backgroundImage: 'linear-gradient(var(--gold) 1px, transparent 1px), linear-gradient(90deg, var(--gold) 1px, transparent 1px)',
               backgroundSize: '40px 40px',
             }}
           />
           {/* Corner accents */}
-          <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#c9a227]/40 rounded-tl" />
-          <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#c9a227]/40 rounded-tr" />
-          <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#c9a227]/40 rounded-bl" />
-          <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#c9a227]/40 rounded-br" />
+          <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 rounded-tl" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
+          <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 rounded-tr" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
+          <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 rounded-bl" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
+          <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 rounded-br" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
           {/* Play button */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <div className="w-16 h-16 rounded-full bg-[#c9a227]/10 border-2 border-[#c9a227]/40 flex items-center justify-center transition-all duration-300 group-hover:bg-[#c9a227]/20 group-hover:border-[#c9a227]/70 group-hover:scale-110 animate-pulse-gold">
-              <Play className="w-6 h-6 text-[#c9a227] ml-1" fill="currentColor" />
+            <div
+              className="w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 animate-pulse-gold"
+              style={{ background: 'rgba(201,162,39,0.1)', borderColor: 'rgba(201,162,39,0.45)' }}
+            >
+              <Play className="w-6 h-6 ml-1" style={{ color: 'var(--gold)' }} fill="currentColor" />
             </div>
-            <span className="text-[#555] text-xs tracking-widest uppercase">Intro Video</span>
+            <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--text-faint)' }}>Intro Video</span>
           </div>
           {/* Bottom label */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent py-3 px-4">
-            <p className="text-[10px] text-[#666] text-left tracking-wider uppercase">
-              Client onboarding overview • Approx. 2 min
+          <div className="absolute bottom-0 inset-x-0 py-3 px-4" style={{ background: 'linear-gradient(to top, rgba(21,34,50,0.8), transparent)' }}>
+            <p className="text-[10px] text-left tracking-wider uppercase" style={{ color: 'var(--text-faint)' }}>
+              Client onboarding overview · Approx. 2 min
             </p>
           </div>
         </div>
@@ -82,11 +89,10 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
       <div className="animate-fade-up delay-400">
         <button
           onClick={onNext}
-          className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full font-semibold text-base text-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#c9a227]/30 focus:outline-none focus:ring-2 focus:ring-[#c9a227]/50"
-          style={{
-            background: 'linear-gradient(135deg, #c9a227 0%, #e8c96a 50%, #c9a227 100%)',
-            backgroundSize: '200% auto',
-          }}
+          className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold text-base uppercase tracking-wider text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg focus:outline-none"
+          style={{ background: 'var(--coral)', boxShadow: '0 4px 24px rgba(232,112,90,0.35)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--coral-light)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--coral)'; }}
         >
           <span>Begin Your Consultation</span>
           <ChevronRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
@@ -94,7 +100,7 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
       </div>
 
       {/* Footer note */}
-      <p className="animate-fade-up delay-500 text-[#444] text-xs mt-6 mb-6 tracking-wide">
+      <p className="animate-fade-up delay-500 text-xs mt-6 mb-6 tracking-wide" style={{ color: 'var(--text-faint)' }}>
         5 steps · Under 5 minutes · Handled by our team
       </p>
 

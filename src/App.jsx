@@ -63,7 +63,7 @@ export default function App() {
   const stepProps = { onNext: goNext, onBack: goBack, data, setData };
 
   return (
-    <div className="min-h-svh bg-[#0a0a0a] flex flex-col">
+    <div className="min-h-svh flex flex-col" style={{ background: 'var(--bg-base)' }}>
       {/* Stepper — hidden on step 1 */}
       {step > 1 && <Stepper current={step} />}
 
@@ -81,8 +81,8 @@ export default function App() {
 
       {/* Footer */}
       {step > 1 && (
-        <div className="py-3 border-t border-[#111] text-center">
-          <p className="text-[10px] text-[#2a2a2a] tracking-widest uppercase">
+        <div className="py-3 border-t text-center" style={{ borderColor: 'var(--border-sub)' }}>
+          <p className="text-[10px] tracking-widest uppercase font-medium" style={{ color: 'var(--text-faint)' }}>
             CBA Solutions · Client Portal
           </p>
         </div>
