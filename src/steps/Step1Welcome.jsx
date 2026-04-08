@@ -14,24 +14,32 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
         }}
       />
 
-      {/* Agency badge */}
-      <div className="animate-fade-up mb-8 relative">
-        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border" style={{ borderColor: 'rgba(201,162,39,0.35)', background: 'rgba(201,162,39,0.07)' }}>
-          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--gold)' }} />
-          <span className="text-[11px] tracking-[0.18em] uppercase font-semibold" style={{ color: 'var(--gold)' }}>
-            CBA Solutions — Client Portal
+      {/* Logo + Client Portal */}
+      <div className="animate-fade-up mb-6 relative flex flex-col items-center gap-3">
+        {/* Logo on a white pill so it renders cleanly on dark bg */}
+        <div className="rounded-2xl overflow-hidden px-6 py-3 shadow-lg" style={{ background: '#ffffff' }}>
+          <img
+            src="/cba-logo.png"
+            alt="CBA Solutions"
+            className="h-12 w-auto object-contain"
+          />
+        </div>
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="h-px w-10" style={{ background: 'var(--border)' }} />
+          <span className="text-[10px] tracking-[0.22em] uppercase font-semibold" style={{ color: 'var(--text-muted)' }}>
+            Client Portal
           </span>
+          <div className="h-px w-10" style={{ background: 'var(--border)' }} />
         </div>
       </div>
 
       {/* Heading */}
       <div className="animate-fade-up delay-100 mb-4 relative">
-        <p className="text-[11px] tracking-[0.2em] uppercase font-semibold mb-3" style={{ color: 'var(--coral)' }}>
-          — Brand Brief Consultation —
-        </p>
-        <h1 className="font-serif-display text-4xl sm:text-5xl font-bold leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Your Brand Brief
+        <h1 className="font-serif-display text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
+          <span style={{ color: 'var(--text-primary)' }}>Your Brand Brief &amp;</span>
           <br />
+          <span style={{ color: 'var(--text-primary)' }}>Website </span>
           <span style={{ color: 'var(--gold)' }}>Consultation</span>
         </h1>
         {/* Decorative rule */}
@@ -53,7 +61,6 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
           className="relative rounded-2xl overflow-hidden aspect-video shadow-2xl group border"
           style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}
         >
-          {/* Grid overlay */}
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
@@ -61,12 +68,10 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
               backgroundSize: '40px 40px',
             }}
           />
-          {/* Corner accents */}
           <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 rounded-tl" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
           <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 rounded-tr" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
           <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 rounded-bl" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
           <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 rounded-br" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
-          {/* Play button */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <div
               className="w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 animate-pulse-gold"
@@ -76,7 +81,6 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
             </div>
             <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--text-faint)' }}>Intro Video</span>
           </div>
-          {/* Bottom label */}
           <div className="absolute bottom-0 inset-x-0 py-3 px-4" style={{ background: 'linear-gradient(to top, rgba(21,34,50,0.8), transparent)' }}>
             <p className="text-[10px] text-left tracking-wider uppercase" style={{ color: 'var(--text-faint)' }}>
               Client onboarding overview · Approx. 2 min
