@@ -3,6 +3,8 @@ import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle } 
 
 const DEFAULT_HERO_TEXT = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
 
+const CHAR_LIMIT = 600;
+
 function wordCount(str) {
   return str.trim() === '' ? 0 : str.trim().split(/\s+/).length;
 }
@@ -12,10 +14,8 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
   const fileRef = useRef();
 
   const handleTextChange = (e) => {
-    const val = e.target.value;
-    if (wordCount(val) <= 120) {
-      setData({ ...data, heroText: val });
-    }
+    // Allow typing freely — validation is handled via disabled state
+    setData({ ...data, heroText: e.target.value });
   };
 
   const handleFile = (file) => {
@@ -30,9 +30,18 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
     handleFile(e.dataTransfer.files[0]);
   };
 
-  const words = wordCount(data.heroText || '');
-  const nearLimit = words >= 100;
-  const atLimit = words >= 120;
+  const text = data.heroText || DEFAULT_HERO_TEXT;
+  const charCount = text.length;
+  const words = wordCount(text);
+
+  const nearLimit = charCount >= 500;
+  const overLimit = charCount > CHAR_LIMIT;
+  // Colour ramp: neutral → gold warning → red over limit
+  const counterColor = overLimit ? 'text-red-400' : nearLimit ? 'text-[#c9a227]' : 'text-[#555]';
+  const barColor     = overLimit ? 'bg-red-500'   : nearLimit ? 'bg-[#c9a227]'   : 'bg-[#333]';
+  const borderClass  = overLimit
+    ? 'border-red-500/60 shadow-[0_0_0_3px_rgba(239,68,68,0.12)]'
+    : 'border-[#222] focus-within:border-[#c9a227]/50';
 
   return (
     <div className="px-5 py-8 max-w-lg mx-auto w-full">
@@ -54,34 +63,49 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
       <div className="animate-fade-up delay-100 mb-6">
         <div className="flex justify-between items-center mb-2">
           <label className="text-xs text-[#888] uppercase tracking-wider font-semibold">Hero Copy</label>
-          <div className="flex items-center gap-1.5">
-            {nearLimit && (
-              <AlertCircle className={`w-3.5 h-3.5 ${atLimit ? 'text-red-400' : 'text-[#c9a227]'}`} />
-            )}
-            <span className={`text-xs font-mono transition-colors ${atLimit ? 'text-red-400' : nearLimit ? 'text-[#c9a227]' : 'text-[#555]'}`}>
-              {words}/120 words
+          <div className="flex items-center gap-2">
+            {/* Word count (secondary) */}
+            <span className="text-[11px] text-[#444] font-mono hidden sm:inline">
+              {words} words
             </span>
+            <span className="text-[#333]">·</span>
+            {/* Character counter (primary) */}
+            <div className="flex items-center gap-1">
+              {(nearLimit || overLimit) && (
+                <AlertCircle className={`w-3.5 h-3.5 flex-shrink-0 ${overLimit ? 'text-red-400' : 'text-[#c9a227]'}`} />
+              )}
+              <span className={`text-xs font-mono tabular-nums transition-colors duration-200 ${counterColor}`}>
+                {charCount}
+                <span className="text-[#444]">/{CHAR_LIMIT}</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className={`relative rounded-xl border transition-all duration-200 ${
-          atLimit ? 'border-red-500/40' : 'border-[#222] focus-within:border-[#c9a227]/50'
-        } bg-[#0e0e0e]`}>
+        <div className={`relative rounded-xl border transition-all duration-200 ${borderClass} bg-[#0e0e0e]`}>
           <textarea
-            value={data.heroText || DEFAULT_HERO_TEXT}
+            value={text}
             onChange={handleTextChange}
             rows={6}
-            className="w-full bg-transparent text-[#ccc] text-sm leading-relaxed p-4 resize-none outline-none rounded-xl placeholder-[#444]"
+            className="w-full bg-transparent text-[#ccc] text-sm leading-relaxed p-4 pb-5 resize-none outline-none rounded-xl placeholder-[#444]"
             placeholder="Write your hero section copy here..."
           />
-          {/* Word count bar */}
-          <div className="absolute bottom-0 inset-x-0 h-[2px] rounded-b-xl overflow-hidden">
+          {/* Progress bar */}
+          <div className="absolute bottom-0 inset-x-0 h-[3px] rounded-b-xl overflow-hidden bg-[#1a1a1a]">
             <div
-              className={`h-full transition-all duration-300 ${atLimit ? 'bg-red-500' : nearLimit ? 'bg-[#c9a227]' : 'bg-[#333]'}`}
-              style={{ width: `${Math.min((words / 120) * 100, 100)}%` }}
+              className={`h-full transition-all duration-300 ${barColor}`}
+              style={{ width: `${Math.min((charCount / CHAR_LIMIT) * 100, 100)}%` }}
             />
           </div>
         </div>
+
+        {/* Over-limit warning message */}
+        {overLimit && (
+          <p className="mt-2 text-xs text-red-400 flex items-center gap-1.5 animate-fade-up">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {charCount - CHAR_LIMIT} character{charCount - CHAR_LIMIT !== 1 ? 's' : ''} over the limit — trim your copy to continue.
+          </p>
+        )}
 
         <button
           onClick={() => setData({ ...data, heroText: DEFAULT_HERO_TEXT })}
@@ -174,8 +198,14 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         </button>
         <button
           onClick={onNext}
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-black font-semibold text-sm transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-md hover:shadow-[#c9a227]/20"
-          style={{ background: 'linear-gradient(135deg, #c9a227 0%, #e8c96a 60%, #c9a227 100%)' }}
+          disabled={overLimit}
+          title={overLimit ? 'Trim your copy to under 600 characters to continue' : undefined}
+          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-black font-semibold text-sm transition-all duration-200 shadow-md ${
+            overLimit
+              ? 'opacity-40 cursor-not-allowed bg-[#444]'
+              : 'hover:scale-[1.02] active:scale-95 hover:shadow-[#c9a227]/20'
+          }`}
+          style={overLimit ? {} : { background: 'linear-gradient(135deg, #c9a227 0%, #e8c96a 60%, #c9a227 100%)' }}
         >
           Continue
           <ChevronRight className="w-4 h-4" />
