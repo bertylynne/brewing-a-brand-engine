@@ -136,8 +136,8 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
                       <UserCircle className="w-5 h-5" style={{ color: `${accent}60` }} />
                     </div>
                     <div className="text-center">
-                      <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Upload headshot</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>Landscape · 16:9 ratio recommended</p>
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Upload Team Photo</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>Landscape format · 16:9 ratio required for best website fit</p>
                     </div>
                   </>
                 )}

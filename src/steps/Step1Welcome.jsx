@@ -1,7 +1,7 @@
-import { Play, ChevronRight } from 'lucide-react';
+import { Play, ChevronRight, CheckCircle2 } from 'lucide-react';
 import DiscoveryPanel from '../components/DiscoveryPanel';
 
-export default function Step1Welcome({ onNext, onDiscovery }) {
+export default function Step1Welcome({ onNext, onDiscovery, data }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center relative overflow-hidden">
 
@@ -13,6 +13,26 @@ export default function Step1Welcome({ onNext, onDiscovery }) {
           backgroundSize: '48px 48px',
         }}
       />
+
+      {/* biz_id welcome banner */}
+      {data?.bizId && (
+        <div className="animate-fade-up mb-5 w-full max-w-md relative z-10">
+          <div
+            className="flex items-start gap-3 px-4 py-3.5 rounded-2xl border"
+            style={{ background: 'rgba(201,162,39,0.07)', borderColor: 'rgba(201,162,39,0.3)' }}
+          >
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--gold)' }} />
+            <div className="text-left">
+              <p className="text-xs font-semibold leading-snug" style={{ color: 'var(--gold)' }}>
+                Draft started{data.businessName ? ` for ${data.businessName}` : ''}
+              </p>
+              <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                We've pre-loaded your account. Complete the steps below and your brief will be filed automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Logo + Client Portal */}
       <div className="animate-fade-up mb-6 relative flex flex-col items-center gap-3">

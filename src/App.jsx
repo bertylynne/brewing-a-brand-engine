@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Stepper from './components/Stepper';
 import Step1Welcome  from './steps/Step1Welcome';
 import Step2Identity from './steps/Step2Identity';
@@ -21,6 +21,8 @@ const DEFAULT_DATA = {
   serviceCategories: null,
   staff:             [],
   hiring:            { active: false, roles: [], description: '' },
+  // Business tracking
+  bizId:             null,
   // Discovery extras
   businessName:  null,
   address:       null,
@@ -33,6 +35,15 @@ export default function App() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState(DEFAULT_DATA);
 
+  // Read biz_id from URL on mount and store as hidden field
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bizId  = params.get('biz_id');
+    if (bizId) {
+      setData((prev) => ({ ...prev, bizId }));
+    }
+  }, []);
+
   const goNext = () => setStep((s) => Math.min(s + 1, 6));
   const goBack = () => setStep((s) => Math.max(s - 1, 1));
 
@@ -41,7 +52,6 @@ export default function App() {
     const type = (json.type || '').toLowerCase();
     const businessType = (type === 'barbershop' || type === 'salon') ? type : null;
 
-    // Build a personalized hero text if a name was provided
     const heroText = json.businessName
       ? `Welcome to ${json.businessName} — where craftsmanship meets style. Our experienced team delivers exceptional cuts, styles, and grooming services tailored just for you. Whether you need a classic fade, a fresh trim, or a full beauty treatment, we have you covered. Walk in, sit back, and leave looking your absolute best.`
       : DEFAULT_HERO;
@@ -55,7 +65,6 @@ export default function App() {
       phone:        json.phone        || prev.phone,
       rating:       json.rating       != null ? json.rating      : prev.rating,
       reviewCount:  json.reviewCount  != null ? json.reviewCount : prev.reviewCount,
-      // Reset service categories when business type changes
       serviceCategories: businessType !== prev.businessType ? null : prev.serviceCategories,
     }));
   };
@@ -64,10 +73,8 @@ export default function App() {
 
   return (
     <div className="min-h-svh flex flex-col" style={{ background: 'var(--bg-base)' }}>
-      {/* Stepper — hidden on step 1 */}
       {step > 1 && <Stepper current={step} />}
 
-      {/* Step content */}
       <div className="flex-1 overflow-y-auto">
         <div key={step} className="animate-fade-up">
           {step === 1 && <Step1Welcome  {...stepProps} onDiscovery={handleDiscovery} />}
@@ -79,7 +86,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Footer */}
       {step > 1 && (
         <div className="py-3 border-t text-center" style={{ borderColor: 'var(--border-sub)' }}>
           <p className="text-[10px] tracking-widest uppercase font-medium" style={{ color: 'var(--text-faint)' }}>
