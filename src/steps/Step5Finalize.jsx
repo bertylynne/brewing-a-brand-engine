@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase, Check } from 'lucide-react';
 
 // ─── CBA Lab post-submission page ─────────────────────────────────────────────
 function CBALabPage({ data }) {
