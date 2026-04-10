@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase, Check } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase, Check, AlertCircle } from 'lucide-react';
+import { submitBrief } from '../lib/submitBrief';
 
 // ─── CBA Lab post-submission page ─────────────────────────────────────────────
 function CBALabPage({ data }) {
@@ -152,8 +153,10 @@ function CBALabPage({ data }) {
 
 // ─── Main Step 6 component ────────────────────────────────────────────────────
 export default function Step5Finalize({ onBack, data }) {
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading]     = useState(false);
+  const [submitted, setSubmitted]     = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [progressMsg, setProgressMsg] = useState('');
+  const [submitError, setSubmitError] = useState(null);
 
   const businessType = data.businessType || 'barbershop';
   const isBarber     = businessType === 'barbershop';
@@ -174,9 +177,17 @@ export default function Step5Finalize({ onBack, data }) {
 
   const handleSubmit = async () => {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 2200));
-    setLoading(false);
-    setSubmitted(true);
+    setSubmitError(null);
+    setProgressMsg('Connecting to CBA Database…');
+    try {
+      await submitBrief(data, (msg) => setProgressMsg(msg));
+      setLoading(false);
+      setSubmitted(true);
+    } catch (err) {
+      setLoading(false);
+      setSubmitError(err.message || 'An unexpected error occurred. Please try again.');
+      setProgressMsg('');
+    }
   };
 
   if (submitted) return <CBALabPage data={data} />;
@@ -438,7 +449,7 @@ export default function Step5Finalize({ onBack, data }) {
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" />
               </svg>
-              Transmitting Brief…
+              Sending to CBA Database…
             </>
           ) : (
             <>
@@ -447,6 +458,24 @@ export default function Step5Finalize({ onBack, data }) {
             </>
           )}
         </button>
+
+        {/* Live progress message */}
+        {loading && progressMsg && (
+          <p className="text-center text-[11px] mt-3 animate-fade-up" style={{ color: 'var(--text-muted)' }}>
+            {progressMsg}
+          </p>
+        )}
+
+        {/* Error message */}
+        {submitError && !loading && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border px-4 py-3 animate-fade-up" style={{ borderColor: 'rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.07)' }}>
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
+            <div>
+              <p className="text-xs font-semibold text-red-400 mb-0.5">Submission Failed</p>
+              <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{submitError}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Back */}
