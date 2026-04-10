@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase, Check, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Send, Scissors, Sparkles, MapPin, Phone, Star, Database, Clock, Shield, CheckCircle, Users, UserCircle, ImageIcon, Type, Briefcase, Check, AlertCircle, Palette, Link as LinkIcon, CreditCard, CalendarDays, Wand2 } from 'lucide-react';
 import { submitBrief } from '../lib/submitBrief';
+
+const DAYS_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+const DAY_LABEL  = { monday:'Mon', tuesday:'Tue', wednesday:'Wed', thursday:'Thu', friday:'Fri', saturday:'Sat', sunday:'Sun' };
+
+function fmt12(time24) {
+  if (!time24) return '';
+  const [h, m] = time24.split(':').map(Number);
+  const period = h < 12 ? 'AM' : 'PM';
+  const h12    = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+}
 
 // ─── CBA Lab post-submission page ─────────────────────────────────────────────
 function CBALabPage({ data }) {
@@ -198,7 +209,7 @@ export default function Step5Finalize({ onBack, data }) {
       {/* Header */}
       <div className="animate-fade-up mb-6">
         <p className="text-[11px] tracking-[0.2em] uppercase font-semibold mb-2" style={{ color: 'var(--coral)' }}>
-          — Step 06 —
+          — Step 08 —
         </p>
         <h2 className="font-serif-display text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Review Your Brief
@@ -246,6 +257,111 @@ export default function Step5Finalize({ onBack, data }) {
                   <span className="text-[11px] italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>"{data.tagline}"</span>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Brand Colours */}
+        {data.brandColors && (
+          <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-surface)' }}>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Palette className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)' }}>Brand Colours</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {[
+                { label: 'Primary',   val: data.brandColors.primary   },
+                { label: 'Secondary', val: data.brandColors.secondary },
+                { label: 'Accent',    val: data.brandColors.accent    },
+              ].map(({ label, val }) => val && (
+                <div key={label} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border" style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}>
+                  <div className="w-3.5 h-3.5 rounded-full flex-shrink-0 border" style={{ background: val, borderColor: 'rgba(255,255,255,0.15)' }} />
+                  <span className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>{val.toUpperCase()}</span>
+                  <span className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{label}</span>
+                </div>
+              ))}
+            </div>
+            {data.customDesign?.enabled && (
+              <div className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border" style={{ borderColor: 'rgba(201,162,39,0.3)', background: 'rgba(201,162,39,0.06)' }}>
+                <Wand2 className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--gold)' }} />
+                <span className="text-[11px] font-medium" style={{ color: 'var(--gold)' }}>Custom build requested</span>
+                {data.customDesign.vibeNotes && (
+                  <span className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>· "{data.customDesign.vibeNotes.slice(0, 50)}{data.customDesign.vibeNotes.length > 50 ? '…' : ''}"</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Social Links */}
+        {(data.socialLinks?.facebook || data.socialLinks?.instagram || data.socialLinks?.others?.length > 0) && (
+          <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-surface)' }}>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <LinkIcon className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)' }}>Social Media</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {data.socialLinks.facebook && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold w-16 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Facebook</span>
+                  <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{data.socialLinks.facebook}</span>
+                </div>
+              )}
+              {data.socialLinks.instagram && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold w-16 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Instagram</span>
+                  <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{data.socialLinks.instagram}</span>
+                </div>
+              )}
+              {(data.socialLinks.others || []).filter(o => o.url).map((o) => (
+                <div key={o.id} className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold w-16 flex-shrink-0 truncate" style={{ color: 'var(--text-muted)' }}>{o.label || 'Other'}</span>
+                  <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{o.url}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Payment Methods */}
+        {(data.paymentMethods || []).length > 0 && (
+          <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-surface)' }}>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <CreditCard className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)' }}>Payment Methods</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {data.paymentMethods.map((p) => (
+                <span key={p} className="px-2.5 py-1 rounded-full text-[10px] font-semibold border"
+                  style={{ borderColor: `${accent}35`, background: `${accent}0d`, color: accent }}>
+                  {p.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Business Hours */}
+        {data.businessHours && (
+          <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-surface)' }}>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <CalendarDays className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)' }}>Business Hours</p>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {DAYS_ORDER.map((day) => {
+                const d = data.businessHours[day];
+                if (!d) return null;
+                return (
+                  <div key={day} className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold w-8" style={{ color: 'var(--text-muted)' }}>{DAY_LABEL[day]}</span>
+                    {d.closed
+                      ? <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Closed</span>
+                      : <span className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>{fmt12(d.open)} – {fmt12(d.close)}</span>
+                    }
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -369,6 +485,19 @@ export default function Step5Finalize({ onBack, data }) {
                       <div className="w-1.5 h-1.5 rounded-full" style={{ background: member.contactEmail ? 'var(--text-muted)' : 'var(--border)' }} />
                     </div>
                   </div>
+                  {/* Bio */}
+                  {member.bio && (
+                    <div className="px-3 pb-1">
+                      <p className="text-[10px] leading-relaxed italic" style={{ color: 'var(--text-muted)' }}>"{member.bio.slice(0,120)}{member.bio.length > 120 ? '…' : ''}"</p>
+                    </div>
+                  )}
+                  {/* Instagram */}
+                  {member.instagram && (
+                    <div className="px-3 pb-1.5 flex items-center gap-1.5">
+                      <span className="text-[10px]" style={{ color: '#E1306C' }}>@{member.instagram}</span>
+                    </div>
+                  )}
+                  {/* Booking */}
                   {(() => {
                     const status = member.bookingStatus || 'none';
                     if (status === 'create') return (
