@@ -1,5 +1,27 @@
 import { useState, useRef } from 'react';
-import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles } from 'lucide-react';
+import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles, Building2, AtSign, Link as LinkIcon, CreditCard } from 'lucide-react';
+
+// Brand SVG icons not in this version of lucide-react
+const FacebookIcon = ({ className, style }) => (
+  <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+  </svg>
+);
+const InstagramIcon = ({ className, style }) => (
+  <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+  </svg>
+);
+import { slugify } from '../App';
+
+const PAYMENT_OPTIONS = [
+  { id: 'visa',        label: 'Visa' },
+  { id: 'mastercard',  label: 'Mastercard' },
+  { id: 'amex',        label: 'AMEX' },
+  { id: 'cash',        label: 'Cash' },
+  { id: 'apple_pay',   label: 'Apple Pay' },
+  { id: 'google_pay',  label: 'Google Pay' },
+];
 
 const DEFAULT_HERO_TEXT = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
 
@@ -189,6 +211,31 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
     });
   };
 
+  // ── Social links helpers
+  const socialLinks  = data.socialLinks  || { facebook: '', instagram: '', others: [] };
+  const setSocial    = (patch) => setData({ ...data, socialLinks: { ...socialLinks, ...patch } });
+  const addOther     = () => {
+    const id = `sl-${Date.now()}`;
+    setSocial({ others: [...(socialLinks.others || []), { id, label: '', url: '' }] });
+  };
+  const updateOther  = (id, field, val) =>
+    setSocial({ others: socialLinks.others.map((o) => o.id === id ? { ...o, [field]: val } : o) });
+  const removeOther  = (id) =>
+    setSocial({ others: socialLinks.others.filter((o) => o.id !== id) });
+
+  // ── Payment methods helpers
+  const paymentMethods   = data.paymentMethods || [];
+  const togglePayment    = (id) =>
+    setData({ ...data, paymentMethods: paymentMethods.includes(id) ? paymentMethods.filter((p) => p !== id) : [...paymentMethods, id] });
+
+  // ── Business Name / biz_id
+  const handleBusinessName = (val) => {
+    const slug = data.bizId && data.bizId !== slugify(data.businessName || '')
+      ? data.bizId   // user has a URL-supplied bizId — don't overwrite
+      : slugify(val);
+    setData({ ...data, businessName: val, bizId: slug });
+  };
+
   const text       = data.heroText || DEFAULT_HERO_TEXT;
   const charCount  = text.length;
   const words      = wordCount(text);
@@ -220,6 +267,30 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           Review the opening statement for your site. Supply your logo, tagline, and brand photos if you have them ready.
         </p>
+      </div>
+
+      {/* Business Name */}
+      <div className="animate-fade-up delay-100 mb-6">
+        <label className="block text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+          Business Name <span style={{ color: 'var(--coral)' }}>*</span>
+        </label>
+        <div className="flex items-center gap-2.5 rounded-xl border px-3.5 py-3 transition-colors focus-within:border-opacity-80"
+          style={{ background: 'var(--bg-raised)', borderColor: data.businessName ? 'rgba(201,162,39,0.4)' : 'var(--border)' }}>
+          <Building2 className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+          <input
+            type="text"
+            value={data.businessName || ''}
+            onChange={(e) => handleBusinessName(e.target.value)}
+            placeholder="e.g. The Grand Barber Studio"
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--text-primary)' }}
+          />
+        </div>
+        {data.businessName && (
+          <p className="text-[11px] mt-1.5 font-mono" style={{ color: 'var(--text-faint)' }}>
+            ID: <span style={{ color: 'var(--gold)' }}>{data.bizId || slugify(data.businessName)}</span>
+          </p>
+        )}
       </div>
 
       {/* Opening Statement */}
@@ -561,6 +632,79 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         )}
       </div>
 
+      {/* ── Social Media Hub ──────────────────────────────── */}
+      <div className="animate-fade-up delay-400 mb-6">
+        <label className="block text-xs uppercase tracking-wider font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
+          Social Media
+        </label>
+        <div className="flex flex-col gap-2.5">
+          {/* Facebook */}
+          <div className="flex items-center gap-2.5 rounded-xl border px-3.5 py-3" style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}>
+            <FacebookIcon className="w-4 h-4 flex-shrink-0" style={{ color: '#1877F2' }} />
+            <input type="url" value={socialLinks.facebook} onChange={(e) => setSocial({ facebook: e.target.value })}
+              placeholder="https://facebook.com/yourbusiness"
+              className="flex-1 bg-transparent text-sm outline-none" style={{ color: 'var(--text-primary)' }} />
+          </div>
+          {/* Instagram */}
+          <div className="flex items-center gap-2.5 rounded-xl border px-3.5 py-3" style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}>
+            <InstagramIcon className="w-4 h-4 flex-shrink-0" style={{ color: '#E1306C' }} />
+            <input type="url" value={socialLinks.instagram} onChange={(e) => setSocial({ instagram: e.target.value })}
+              placeholder="https://instagram.com/yourbusiness"
+              className="flex-1 bg-transparent text-sm outline-none" style={{ color: 'var(--text-primary)' }} />
+          </div>
+          {/* Extra links */}
+          {(socialLinks.others || []).map((other) => (
+            <div key={other.id} className="flex items-center gap-2 rounded-xl border px-3 py-2.5" style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}>
+              <LinkIcon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+              <input type="text" value={other.label} onChange={(e) => updateOther(other.id, 'label', e.target.value)}
+                placeholder="Label (e.g. TikTok)" className="w-24 bg-transparent text-xs outline-none border-r pr-2 mr-1"
+                style={{ color: 'var(--text-primary)', borderColor: 'var(--border)' }} />
+              <input type="url" value={other.url} onChange={(e) => updateOther(other.id, 'url', e.target.value)}
+                placeholder="https://" className="flex-1 bg-transparent text-sm outline-none"
+                style={{ color: 'var(--text-primary)' }} />
+              <button onClick={() => removeOther(other.id)} className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-faint)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.background = 'transparent'; }}>
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          <button onClick={addOther}
+            className="flex items-center gap-2 text-xs font-medium transition-colors self-start px-1"
+            style={{ color: 'var(--text-faint)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--gold)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}>
+            <Plus className="w-3.5 h-3.5" /> Add another platform
+          </button>
+        </div>
+      </div>
+
+      {/* ── Payment Methods ────────────────────────────────── */}
+      <div className="animate-fade-up delay-400 mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <CreditCard className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+          <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+            Payment Methods Accepted
+          </label>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {PAYMENT_OPTIONS.map((opt) => {
+            const active = paymentMethods.includes(opt.id);
+            return (
+              <button key={opt.id} type="button" onClick={() => togglePayment(opt.id)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-150 active:scale-95"
+                style={active
+                  ? { borderColor: 'rgba(201,162,39,0.6)', background: 'rgba(201,162,39,0.1)', color: 'var(--gold)' }
+                  : { borderColor: 'var(--border)', background: 'var(--bg-raised)', color: 'var(--text-muted)' }}>
+                {active && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--gold)' }} />}
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Navigation */}
       <div className="animate-fade-up delay-500 flex gap-3">
         <button
@@ -573,16 +717,16 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         </button>
         <button
           onClick={onNext}
-          disabled={overLimit}
+          disabled={overLimit || !data.businessName?.trim()}
           title={overLimit ? 'Trim your copy to under 600 characters to continue' : undefined}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-95"
           style={
-            overLimit
+            overLimit || !data.businessName?.trim()
               ? { background: 'var(--bg-raised)', color: 'var(--text-faint)', cursor: 'not-allowed' }
               : { background: 'var(--coral)', boxShadow: '0 4px 16px rgba(232,112,90,0.3)' }
           }
-          onMouseEnter={(e) => { if (!overLimit) e.currentTarget.style.background = 'var(--coral-light)'; }}
-          onMouseLeave={(e) => { if (!overLimit) e.currentTarget.style.background = 'var(--coral)'; }}
+          onMouseEnter={(e) => { if (!overLimit && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral-light)'; }}
+          onMouseLeave={(e) => { if (!overLimit && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral)'; }}
         >
           Continue
           <ChevronRight className="w-4 h-4" />

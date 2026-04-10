@@ -87,18 +87,23 @@ export async function submitBrief(data, onProgress = () => {}) {
     .from('businesses')
     .upsert(
       {
-        biz_id:         bizId,
-        business_name:  data.businessName  || null,
-        business_type:  data.businessType  || null,
-        address:        data.address       || null,
-        phone:          data.phone         || null,
-        rating:         data.rating        ?? null,
-        hero_text:      data.heroText      || null,
-        tagline:        data.tagline       || null,
-        logo_url:       logoUrl,
-        hero_image_url: heroImageUrl,
-        brand_photos:   brandPhotosUploaded,
-        hiring_info:    data.hiring        || null,
+        biz_id:          bizId,
+        business_name:   data.businessName   || null,
+        business_type:   data.businessType   || null,
+        address:         data.address        || null,
+        phone:           data.phone          || null,
+        rating:          data.rating         ?? null,
+        hero_text:       data.heroText       || null,
+        tagline:         data.tagline        || null,
+        logo_url:        logoUrl,
+        hero_image_url:  heroImageUrl,
+        brand_photos:    brandPhotosUploaded,
+        hiring_info:     data.hiring         || null,
+        social_links:    data.socialLinks    || null,
+        payment_methods: data.paymentMethods || null,
+        brand_colors:    data.brandColors    || null,
+        custom_design:   data.customDesign   || null,
+        business_hours:  data.businessHours  || null,
       },
       { onConflict: 'biz_id' }
     );
@@ -115,13 +120,15 @@ export async function submitBrief(data, onProgress = () => {}) {
       .insert(
         staffWithPhotos.map((m) => ({
           biz_id:         bizId,
-          name:           m.name          || null,
-          role_type:      m.title         || null,
-          contact_email:  m.contactEmail  || null,
-          contact_phone:  m.contactPhone  || null,
-          booking_status: m.bookingStatus || 'none',
-          booking_link:   m.bookingLink   || null,
-          photo_url:      m.uploadedPhotoUrl || null,
+          name:           m.name              || null,
+          role_type:      m.title             || null,
+          bio:            m.bio               || null,
+          instagram:      m.instagram         || null,
+          contact_email:  m.contactEmail      || null,
+          contact_phone:  m.contactPhone      || null,
+          booking_status: m.bookingStatus     || 'none',
+          booking_link:   m.bookingLink       || null,
+          photo_url:      m.uploadedPhotoUrl  || null,
         }))
       );
     if (staffError) throw new Error(`staff: ${staffError.message}`);

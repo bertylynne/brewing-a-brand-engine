@@ -1,8 +1,14 @@
 import { useState, useRef } from 'react';
 import {
   ChevronRight, ChevronLeft, Upload, UserCircle,
-  Trash2, Plus, Users, Link, Mail, Phone, ImageIcon, Briefcase,
+  Trash2, Plus, Users, Link, Mail, Phone, ImageIcon, Briefcase, FileText,
 } from 'lucide-react';
+
+const InstagramIcon = ({ className, style }) => (
+  <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+  </svg>
+);
 
 let nextMemberId = 300;
 
@@ -231,6 +237,53 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
           </div>
         </div>
 
+        {/* Professional Bio */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-faint)' }}>
+              Professional Bio
+            </label>
+            <span className="text-[10px] font-mono tabular-nums"
+              style={{ color: (member.bio || '').length > 230 ? '#f87171' : 'var(--text-faint)' }}>
+              {(member.bio || '').length}<span style={{ color: 'var(--border)' }}>/250</span>
+            </span>
+          </div>
+          <div className="rounded-xl border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
+            <div className="flex items-start gap-2.5 p-3">
+              <FileText className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
+              <textarea
+                value={member.bio || ''}
+                onChange={(e) => onUpdate(member.id, 'bio', e.target.value)}
+                rows={3}
+                maxLength={270}
+                placeholder={`e.g. "Marcus has 10 years of experience specialising in skin fades and classic cuts..."`}
+                className="flex-1 bg-transparent text-xs leading-relaxed resize-none outline-none"
+                style={{ color: 'var(--text-primary)' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Instagram Handle */}
+        <div>
+          <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'var(--text-faint)' }}>
+            Instagram Handle
+          </label>
+          <div className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
+            style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
+            <InstagramIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#E1306C' }} />
+            <span className="text-sm" style={{ color: 'var(--text-faint)' }}>@</span>
+            <input
+              type="text"
+              value={member.instagram || ''}
+              onChange={(e) => onUpdate(member.id, 'instagram', e.target.value.replace(/^@/, ''))}
+              placeholder="handle (without @)"
+              className="flex-1 bg-transparent text-xs outline-none min-w-0"
+              style={{ color: 'var(--text-primary)' }}
+            />
+          </div>
+        </div>
+
         {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
@@ -285,7 +338,7 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
 
   const toggleRole = (role) => setHiring({ ...hiring, roles: hiring.roles.includes(role) ? hiring.roles.filter((r) => r !== role) : [...hiring.roles, role] });
 
-  const addMember = () => setStaff([...staff, { id: nextMemberId++, name: '', title: '', photo: null, photoName: null, bookingStatus: 'none', bookingLink: '', contactEmail: '', contactPhone: '' }]);
+  const addMember = () => setStaff([...staff, { id: nextMemberId++, name: '', title: '', photo: null, photoName: null, bookingStatus: 'none', bookingLink: '', bio: '', instagram: '', contactEmail: '', contactPhone: '' }]);
   // Accept a single field+value OR a patch object so multiple fields can update atomically
   const updateMember = (id, fieldOrPatch, value) => {
     const patch = typeof fieldOrPatch === 'object' ? fieldOrPatch : { [fieldOrPatch]: value };

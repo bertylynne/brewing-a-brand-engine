@@ -1,6 +1,8 @@
 const STEPS = [
-  { label: 'Welcome'  },
+  { label: 'Start'    },
   { label: 'Identity' },
+  { label: 'Design'   },
+  { label: 'Hours'    },
   { label: 'Category' },
   { label: 'Services' },
   { label: 'Team'     },
@@ -10,13 +12,13 @@ const STEPS = [
 export default function Stepper({ current }) {
   return (
     <div className="w-full px-4 pt-5 pb-4 border-b" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-sub)' }}>
-      <div className="max-w-md mx-auto">
+      <div className="max-w-lg mx-auto">
         {/* Step labels */}
         <div className="flex justify-between mb-2.5">
           {STEPS.map((step, i) => (
             <div key={i} className="flex flex-col items-center flex-1">
               <span
-                className="text-[10px] font-semibold tracking-widest uppercase transition-all duration-300"
+                className="text-[9px] font-semibold tracking-widest uppercase transition-all duration-300 hidden sm:block"
                 style={{
                   color: i + 1 === current
                     ? 'var(--gold)'
@@ -44,13 +46,13 @@ export default function Stepper({ current }) {
           />
           <div className="relative flex justify-between w-full">
             {STEPS.map((_, i) => {
-              const stepNum = i + 1;
+              const stepNum  = i + 1;
               const isDone   = stepNum < current;
               const isActive = stepNum === current;
               return (
                 <div
                   key={i}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 border-2 ${isActive ? 'animate-pulse-coral' : ''}`}
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all duration-300 border-2 ${isActive ? 'animate-pulse-coral' : ''}`}
                   style={
                     isDone
                       ? { background: 'var(--coral)', borderColor: 'var(--coral)', color: '#fff' }
@@ -60,7 +62,7 @@ export default function Stepper({ current }) {
                   }
                 >
                   {isDone ? (
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
                       <path d="M1.5 5L3.8 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   ) : stepNum}
