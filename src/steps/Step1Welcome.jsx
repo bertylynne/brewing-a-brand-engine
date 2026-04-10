@@ -1,7 +1,26 @@
-import { Play, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { Play, ChevronRight, CheckCircle2, Database, CheckCircle, XCircle, Loader } from 'lucide-react';
 import DiscoveryPanel from '../components/DiscoveryPanel';
+import { supabase } from '../lib/supabaseClient';
 
 export default function Step1Welcome({ onNext, onDiscovery, data }) {
+  const [testStatus, setTestStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
+  const [testError,  setTestError]  = useState(null);
+
+  const handleTestConnection = async () => {
+    setTestStatus('loading');
+    setTestError(null);
+    const { error } = await supabase
+      .from('businesses')
+      .insert({ biz_id: 'test-salon', business_name: 'Test Connection' });
+    if (error) {
+      setTestStatus('error');
+      setTestError(error.message);
+    } else {
+      setTestStatus('success');
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center relative overflow-hidden">
 
@@ -121,9 +140,46 @@ export default function Step1Welcome({ onNext, onDiscovery, data }) {
       </div>
 
       {/* Footer note */}
-      <p className="animate-fade-up delay-500 text-xs mt-6 mb-6 tracking-wide" style={{ color: 'var(--text-faint)' }}>
+      <p className="animate-fade-up delay-500 text-xs mt-6 mb-4 tracking-wide" style={{ color: 'var(--text-faint)' }}>
         5 steps · Under 5 minutes · Handled by our team
       </p>
+
+      {/* Supabase Test Connection */}
+      <div className="animate-fade-up delay-600 mb-6 flex flex-col items-center gap-2">
+        <button
+          onClick={handleTestConnection}
+          disabled={testStatus === 'loading'}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full border text-xs font-semibold uppercase tracking-wider transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+          style={
+            testStatus === 'success'
+              ? { borderColor: 'rgba(74,222,128,0.5)', background: 'rgba(74,222,128,0.08)', color: '#4ade80' }
+              : testStatus === 'error'
+              ? { borderColor: 'rgba(248,113,113,0.5)', background: 'rgba(248,113,113,0.08)', color: '#f87171' }
+              : { borderColor: 'var(--border)', background: 'transparent', color: 'var(--text-faint)' }
+          }
+        >
+          {testStatus === 'loading' && <Loader className="w-3.5 h-3.5 animate-spin" />}
+          {testStatus === 'success' && <CheckCircle className="w-3.5 h-3.5" />}
+          {testStatus === 'error'   && <XCircle className="w-3.5 h-3.5" />}
+          {testStatus === 'idle'    && <Database className="w-3.5 h-3.5" />}
+
+          {testStatus === 'idle'    && 'Test Supabase Connection'}
+          {testStatus === 'loading' && 'Testing…'}
+          {testStatus === 'success' && 'Connection Successful'}
+          {testStatus === 'error'   && 'Connection Failed'}
+        </button>
+
+        {testStatus === 'error' && testError && (
+          <p className="text-[11px] text-center max-w-xs leading-relaxed" style={{ color: '#f87171' }}>
+            {testError}
+          </p>
+        )}
+        {testStatus === 'success' && (
+          <p className="text-[11px] text-center" style={{ color: 'rgba(74,222,128,0.7)' }}>
+            Row inserted into <span className="font-mono">businesses</span> table ✓
+          </p>
+        )}
+      </div>
 
       {/* Discovery Mode panel */}
       <DiscoveryPanel onApply={onDiscovery} />
