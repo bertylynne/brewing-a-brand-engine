@@ -104,6 +104,7 @@ export async function submitBrief(data, onProgress = () => {}) {
         brand_colors:      data.brandColors    || null,
         custom_design:     data.customDesign   || null,
         business_hours:    data.businessHours  || null,
+        status:            'pending',
       },
       { onConflict: 'biz_id' }
     );
