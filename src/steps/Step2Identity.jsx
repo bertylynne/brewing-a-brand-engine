@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles, Building2, AtSign, Link as LinkIcon, CreditCard } from 'lucide-react';
+import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles, Building2, Phone, Link as LinkIcon, CreditCard } from 'lucide-react';
 
 // Brand SVG icons not in this version of lucide-react
 const FacebookIcon = ({ className, style }) => (
@@ -228,6 +228,16 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
   const togglePayment    = (id) =>
     setData({ ...data, paymentMethods: paymentMethods.includes(id) ? paymentMethods.filter((p) => p !== id) : [...paymentMethods, id] });
 
+  // ── Phone mask  (xxx) xxx-xxxx
+  const applyPhoneMask = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3)  return `(${digits}`;
+    if (digits.length <= 6)  return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  };
+  const handlePhone = (raw) => setData({ ...data, phone: applyPhoneMask(raw) });
+
   // ── Business Name / biz_id
   const handleBusinessName = (val) => {
     const slug = data.bizId && data.bizId !== slugify(data.businessName || '')
@@ -291,6 +301,27 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
             ID: <span style={{ color: 'var(--gold)' }}>{data.bizId || slugify(data.businessName)}</span>
           </p>
         )}
+      </div>
+
+      {/* Business Phone */}
+      <div className="animate-fade-up delay-100 mb-6">
+        <label className="block text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+          Business Phone Number
+        </label>
+        <div
+          className="flex items-center gap-2.5 rounded-xl border px-3.5 py-3 transition-colors focus-within:border-opacity-80"
+          style={{ background: 'var(--bg-raised)', borderColor: data.phone ? 'rgba(201,162,39,0.4)' : 'var(--border)' }}
+        >
+          <Phone className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+          <input
+            type="tel"
+            value={data.phone || ''}
+            onChange={(e) => handlePhone(e.target.value)}
+            placeholder="(555) 000-0000"
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--text-primary)' }}
+          />
+        </div>
       </div>
 
       {/* Opening Statement */}
