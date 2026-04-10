@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Palette, Wand2, Link as LinkIcon, FileText, X } from 'lucide-react';
 
 const COLOR_PRESETS = {
@@ -10,6 +10,12 @@ const COLOR_PRESETS = {
 function ColorPicker({ label, colorKey, value, onChange }) {
   const [hex, setHex] = useState(value);
   const [inputVal, setInputVal] = useState(value);
+
+  // Keep local state in sync if the parent value changes (e.g. navigating back)
+  useEffect(() => {
+    setHex(value);
+    setInputVal(value);
+  }, [value]);
 
   const commit = (val) => {
     const clean = val.startsWith('#') ? val : `#${val}`;
