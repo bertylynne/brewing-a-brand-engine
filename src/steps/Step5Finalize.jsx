@@ -261,6 +261,31 @@ export default function Step5Finalize({ onBack, data }) {
           </div>
         )}
 
+        {/* Brand Photos */}
+        {(data.brandPhotos || []).length > 0 && (
+          <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-surface)' }}>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <ImageIcon className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)' }}>Brand Photos</p>
+              </div>
+              <span className="text-[10px] font-mono" style={{ color: 'var(--text-faint)' }}>{data.brandPhotos.length} uploaded</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {data.brandPhotos.map((photo) => (
+                <div key={photo.id} className="relative rounded-lg overflow-hidden border" style={{ aspectRatio: '4/3', borderColor: 'var(--border)', background: 'var(--bg-raised)' }}>
+                  <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                  {photo.category && (
+                    <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
+                      <span className="text-[8px] uppercase tracking-wider font-semibold text-white/70">{photo.category}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Brand Colours */}
         {data.brandColors && (
           <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-surface)' }}>
@@ -268,7 +293,7 @@ export default function Step5Finalize({ onBack, data }) {
               <Palette className="w-3 h-3" style={{ color: 'var(--gold)' }} />
               <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)' }}>Brand Colours</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {[
                 { label: 'Primary',   val: data.brandColors.primary   },
                 { label: 'Secondary', val: data.brandColors.secondary },
@@ -281,12 +306,31 @@ export default function Step5Finalize({ onBack, data }) {
                 </div>
               ))}
             </div>
+            {/* Custom build */}
             {data.customDesign?.enabled && (
-              <div className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border" style={{ borderColor: 'rgba(201,162,39,0.3)', background: 'rgba(201,162,39,0.06)' }}>
-                <Wand2 className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--gold)' }} />
-                <span className="text-[11px] font-medium" style={{ color: 'var(--gold)' }}>Custom build requested</span>
+              <div className="mt-3 rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(201,162,39,0.3)', background: 'rgba(201,162,39,0.05)' }}>
+                <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'rgba(201,162,39,0.2)' }}>
+                  <Wand2 className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--gold)' }} />
+                  <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)' }}>Custom Build Requested</span>
+                </div>
+                {/* Inspiration URLs */}
+                {(data.customDesign.urls || []).filter(u => u?.trim()).length > 0 && (
+                  <div className="px-3 py-2 border-b flex flex-col gap-1.5" style={{ borderColor: 'rgba(201,162,39,0.2)' }}>
+                    <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-faint)' }}>Inspiration Links</p>
+                    {(data.customDesign.urls || []).filter(u => u?.trim()).map((url, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <LinkIcon className="w-2.5 h-2.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                        <span className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{url}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Vibe notes */}
                 {data.customDesign.vibeNotes && (
-                  <span className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>· "{data.customDesign.vibeNotes.slice(0, 50)}{data.customDesign.vibeNotes.length > 50 ? '…' : ''}"</span>
+                  <div className="px-3 py-2">
+                    <p className="text-[9px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-faint)' }}>Vibe Notes</p>
+                    <p className="text-[11px] italic leading-relaxed" style={{ color: 'var(--text-muted)' }}>"{data.customDesign.vibeNotes.slice(0, 200)}{data.customDesign.vibeNotes.length > 200 ? '…' : ''}"</p>
+                  </div>
                 )}
               </div>
             )}
