@@ -159,7 +159,16 @@ export default function Step5Finalize({ onBack, data }) {
   const isBarber     = businessType === 'barbershop';
   const accent       = isBarber ? '#c9a227' : '#d4a0c8';
 
-  const allServices  = (data.serviceCategories || []).flatMap((cat) => cat.services);
+  // Step 4 saves a flat array under `selectedServices`; group by category for display
+  const selectedServices = data.selectedServices || [];
+  const serviceCategories = selectedServices.reduce((acc, svc) => {
+    const catName = svc.category || 'Other';
+    let cat = acc.find((c) => c.category === catName);
+    if (!cat) { cat = { category: catName, services: [] }; acc.push(cat); }
+    cat.services.push(svc);
+    return acc;
+  }, []);
+  const allServices = selectedServices;
   const heroPreview  = (data.heroText || '').slice(0, 90) + ((data.heroText || '').length > 90 ? '…' : '');
   const hasDiscovery = data.businessName || data.address || data.phone || data.rating != null;
 
@@ -288,10 +297,10 @@ export default function Step5Finalize({ onBack, data }) {
           <p className="text-[10px] uppercase tracking-widest mb-3 font-semibold" style={{ color: 'var(--text-muted)' }}>
             Service Menu ({allServices.length})
           </p>
-          {data.serviceCategories ? (
+          {serviceCategories.length > 0 ? (
             <div className="flex flex-col gap-3">
-              {data.serviceCategories.map((cat) => (
-                <div key={cat.id}>
+              {serviceCategories.map((cat) => (
+                <div key={cat.category}>
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <div className="w-1 h-3 rounded-full" style={{ background: accent }} />
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: `${accent}cc` }}>{cat.category}</p>
@@ -305,7 +314,6 @@ export default function Step5Finalize({ onBack, data }) {
                             <Clock className="w-2.5 h-2.5" />{s.duration}m
                           </span>
                         )}
-                        <span className="text-[11px] font-mono flex-shrink-0" style={{ color: accent }}>${s.price || '—'}</span>
                       </div>
                     ))}
                   </div>
