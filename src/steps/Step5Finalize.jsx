@@ -65,7 +65,7 @@ function CBALabPage({ data }) {
           Information Received
         </p>
         <h1 className="font-serif-display text-3xl sm:text-4xl font-bold leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Pops is now auditing<br />your brand brief.
+          We're now auditing<br />your brand brief.
         </h1>
         <div className="flex items-center justify-center gap-3 mt-4">
           <div className="h-px w-10" style={{ background: 'var(--gold)' }} />
@@ -131,7 +131,7 @@ function CBALabPage({ data }) {
       <div className="relative z-10 animate-fade-up delay-600 w-full max-w-sm flex flex-col gap-0 mb-10">
         {[
           { window: '0–4 hrs',   title: 'Brief received & logged',   body: 'Your brand data is securely filed in our client system.' },
-          { window: '4–24 hrs',  title: 'Strategic audit underway',  body: 'Pops reviews your copy, services, and market positioning.' },
+          { window: '4–24 hrs',  title: 'Strategic audit underway',  body: 'Our team reviews your copy, services, and market positioning.' },
           { window: '24–48 hrs', title: 'Proof delivered to you',    body: 'You receive a live preview link for final sign-off.' },
         ].map((item, i, arr) => (
           <div key={i} className="flex gap-4">
