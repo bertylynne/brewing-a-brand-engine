@@ -23,7 +23,7 @@ const PAYMENT_OPTIONS = [
   { id: 'google_pay',  label: 'Google Pay' },
 ];
 
-const DEFAULT_HERO_TEXT = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
+const DEFAULT_HERO_TEXT = `Precision-crafted branding for the modern craftsman. We don't just build websites; we architect digital homes for high-end service providers. Your legacy, amplified through elite design and strategic clarity.`;
 
 const CHAR_LIMIT = 250;
 const TAGLINE_LIMIT = 80;
@@ -154,7 +154,7 @@ function PhotoSlot({ photo, categoryDef, onUpload, onRemove }) {
   );
 }
 
-export default function Step2Identity({ onNext, onBack, data, setData }) {
+export default function Step2Identity({ onNext, onBack, data, setData, isAdmin }) {
   const [heroDragging, setHeroDragging] = useState(false);
   const [logoDragging, setLogoDragging] = useState(false);
   const heroFileRef = useRef();
@@ -756,16 +756,16 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         </button>
         <button
           onClick={onNext}
-          disabled={overLimit || taglineOver || !data.businessName?.trim()}
-          title={overLimit ? `Trim your opening statement to under ${CHAR_LIMIT} characters` : taglineOver ? `Trim your tagline to under ${TAGLINE_LIMIT} characters` : undefined}
+          disabled={(!isAdmin && (overLimit || taglineOver)) || !data.businessName?.trim()}
+          title={!isAdmin && overLimit ? `Trim your opening statement to under ${CHAR_LIMIT} characters` : !isAdmin && taglineOver ? `Trim your tagline to under ${TAGLINE_LIMIT} characters` : undefined}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-95"
           style={
-            overLimit || taglineOver || !data.businessName?.trim()
+            (!isAdmin && (overLimit || taglineOver)) || !data.businessName?.trim()
               ? { background: 'var(--bg-raised)', color: 'var(--text-faint)', cursor: 'not-allowed' }
               : { background: 'var(--coral)', boxShadow: '0 4px 16px rgba(232,112,90,0.3)' }
           }
-          onMouseEnter={(e) => { if (!overLimit && !taglineOver && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral-light)'; }}
-          onMouseLeave={(e) => { if (!overLimit && !taglineOver && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral)'; }}
+          onMouseEnter={(e) => { if ((isAdmin || (!overLimit && !taglineOver)) && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral-light)'; }}
+          onMouseLeave={(e) => { if ((isAdmin || (!overLimit && !taglineOver)) && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral)'; }}
         >
           Continue
           <ChevronRight className="w-4 h-4" />
