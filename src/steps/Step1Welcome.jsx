@@ -1,7 +1,152 @@
-import { Play, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Play, ChevronRight, CheckCircle2, Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import DiscoveryPanel from '../components/DiscoveryPanel';
 
-export default function Step1Welcome({ onNext, onDiscovery, data }) {
+const MASTER_PASSWORD = 'POPS2026';
+
+function MasterModeGate({ isAdmin, onUnlock }) {
+  const [open, setOpen]       = useState(false);
+  const [pw, setPw]           = useState('');
+  const [showPw, setShowPw]   = useState(false);
+  const [shaking, setShaking] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const inputRef = useRef();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (pw === MASTER_PASSWORD) {
+      onUnlock();
+      setOpen(false);
+      setPw('');
+    } else {
+      setAttempted(true);
+      setShaking(true);
+      setTimeout(() => setShaking(false), 500);
+      setPw('');
+      inputRef.current?.focus();
+    }
+  };
+
+  // Already unlocked — show persistent badge only
+  if (isAdmin) {
+    return (
+      <div className="w-full max-w-md animate-fade-up">
+        <div
+          className="flex items-center justify-between px-4 py-3 rounded-xl border"
+          style={{ borderColor: 'rgba(201,162,39,0.4)', background: 'rgba(201,162,39,0.07)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(201,162,39,0.18)' }}>
+              <ShieldCheck className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+            </div>
+            <div>
+              <p className="text-xs font-bold tracking-wide" style={{ color: 'var(--gold)' }}>Master Mode Active</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Back-office controls are now visible</p>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            {[0, 0.15, 0.3].map((d, i) => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--gold)', animationDelay: `${d}s` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-md animate-fade-up">
+      {/* Toggle button */}
+      <button
+        onClick={() => { setOpen((o) => !o); setAttempted(false); setPw(''); }}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all duration-200 text-left"
+        style={
+          open
+            ? { borderColor: 'rgba(201,162,39,0.3)', background: 'rgba(201,162,39,0.06)' }
+            : { borderColor: 'var(--border)', background: 'var(--bg-raised)' }
+        }
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+            style={open ? { background: 'rgba(201,162,39,0.15)', color: 'var(--gold)' } : { background: 'var(--bg-surface)', color: 'var(--text-faint)' }}
+          >
+            <Lock className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold transition-colors" style={{ color: open ? 'var(--gold)' : 'var(--text-secondary)' }}>
+              Admin Access
+            </p>
+            <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Enter password to unlock Master Mode</p>
+          </div>
+        </div>
+        <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: open ? 'var(--gold)' : 'var(--border)' }} />
+      </button>
+
+      {/* Password panel */}
+      {open && (
+        <div className="mt-2 rounded-xl border overflow-hidden animate-fade-up" style={{ borderColor: 'var(--border)', background: 'var(--bg-raised)' }}>
+          <div className="px-4 pt-4 pb-4">
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
+              Master Password
+            </p>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <div
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-all duration-200 ${shaking ? 'animate-shake' : ''}`}
+                style={{
+                  background: 'var(--bg-surface)',
+                  borderColor: attempted && !shaking ? 'rgba(239,68,68,0.5)' : 'var(--border)',
+                }}
+              >
+                <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+                <input
+                  ref={inputRef}
+                  type={showPw ? 'text' : 'password'}
+                  value={pw}
+                  onChange={(e) => { setPw(e.target.value); setAttempted(false); }}
+                  placeholder="Enter password"
+                  autoFocus
+                  className="flex-1 bg-transparent text-sm outline-none font-mono tracking-widest"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  className="flex-shrink-0 transition-colors"
+                  style={{ color: 'var(--text-faint)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--gold)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}
+                >
+                  {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              {attempted && !shaking && (
+                <p className="text-[11px] text-red-400 flex items-center gap-1.5 animate-fade-up">
+                  <Lock className="w-3 h-3 flex-shrink-0" />
+                  Incorrect password — access denied.
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={!pw.trim()}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: pw.trim() ? 'var(--coral)' : 'var(--bg-surface)' }}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Unlock Master Mode
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, data, isAdmin }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center relative overflow-hidden">
 
@@ -119,12 +264,33 @@ export default function Step1Welcome({ onNext, onDiscovery, data }) {
       </div>
 
       {/* Footer note */}
-      <p className="animate-fade-up delay-500 text-xs mt-6 mb-6 tracking-wide" style={{ color: 'var(--text-faint)' }}>
+      <p className="animate-fade-up delay-500 text-xs mt-6 mb-8 tracking-wide" style={{ color: 'var(--text-faint)' }}>
         8 steps · Under 10 minutes · Handled by our team
       </p>
 
-      {/* Discovery Mode panel */}
-      <DiscoveryPanel onApply={onDiscovery} />
+      {/* ── Admin Zone ──────────────────────────────────────────── */}
+      <div className="w-full max-w-md flex flex-col gap-3 relative z-10">
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
+          <span className="text-[9px] uppercase tracking-[0.2em] font-semibold" style={{ color: 'var(--text-faint)' }}>
+            Admin
+          </span>
+          <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
+        </div>
+
+        {/* Password gate — always visible, unlocks isAdmin */}
+        <MasterModeGate isAdmin={isAdmin} onUnlock={onAdminUnlock} />
+
+        {/* Discovery Panel — only visible after unlock */}
+        {isAdmin && (
+          <div className="animate-fade-up">
+            <DiscoveryPanel onApply={onDiscovery} />
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

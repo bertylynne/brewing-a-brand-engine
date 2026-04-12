@@ -69,8 +69,9 @@ const DEFAULT_DATA = {
 };
 
 export default function App() {
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState(DEFAULT_DATA);
+  const [step, setStep]     = useState(1);
+  const [data, setData]     = useState(DEFAULT_DATA);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Read ?biz_id= from URL on mount — takes precedence over slug
   useEffect(() => {
@@ -104,7 +105,7 @@ export default function App() {
     }));
   };
 
-  const stepProps = { onNext: goNext, onBack: goBack, data, setData };
+  const stepProps = { onNext: goNext, onBack: goBack, data, setData, isAdmin };
 
   return (
     <div className="min-h-svh flex flex-col" style={{ background: 'var(--bg-base)' }}>
@@ -112,7 +113,7 @@ export default function App() {
 
       <div className="flex-1 overflow-y-auto">
         <div key={step} className="animate-fade-up">
-          {step === 1 && <Step1Welcome    {...stepProps} onDiscovery={handleDiscovery} />}
+          {step === 1 && <Step1Welcome    {...stepProps} onDiscovery={handleDiscovery} onAdminUnlock={() => setIsAdmin(true)} />}
           {step === 2 && <Step2Identity   {...stepProps} />}
           {step === 3 && <Step3Design     {...stepProps} />}
           {step === 4 && <Step4Operations {...stepProps} />}
@@ -124,10 +125,16 @@ export default function App() {
       </div>
 
       {step > 1 && (
-        <div className="py-3 border-t text-center" style={{ borderColor: 'var(--border-sub)' }}>
+        <div className="py-3 border-t text-center flex items-center justify-center gap-3" style={{ borderColor: 'var(--border-sub)' }}>
           <p className="text-[10px] tracking-widest uppercase font-medium" style={{ color: 'var(--text-faint)' }}>
             CBA Solutions · Client Portal
           </p>
+          {isAdmin && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
+              style={{ borderColor: 'rgba(201,162,39,0.4)', background: 'rgba(201,162,39,0.1)', color: 'var(--gold)' }}>
+              ★ Master Mode
+            </span>
+          )}
         </div>
       )}
     </div>
