@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-import Stepper        from './components/Stepper';
-import Step1Welcome   from './steps/Step1Welcome';
-import Step2Identity  from './steps/Step2Identity';
-import Step3Design    from './steps/Step3Design';
-import Step4Operations from './steps/Step4Operations';
-import Step5Branch    from './steps/Step3Branch';
-import Step6Services  from './steps/Step4Services';
-import Step7Staff     from './steps/Step5Staff';
-import Step8Finalize  from './steps/Step5Finalize';
+import Stepper          from './components/Stepper';
+import Step1Welcome     from './steps/Step1Welcome';
+import Step2Blueprint   from './steps/StepBlueprint';
+import Step3Identity    from './steps/Step2Identity';
+import Step4Operations  from './steps/Step4Operations';
+import Step5Services    from './steps/Step4Services';
+import Step6Staff       from './steps/Step5Staff';
+import Step7Finalize    from './steps/Step5Finalize';
 import './index.css';
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 7;
 
 const DEFAULT_HERO = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
 
@@ -115,13 +114,12 @@ export default function App() {
       <div className="flex-1 overflow-y-auto">
         <div key={step} className="animate-fade-up">
           {step === 1 && <Step1Welcome    {...stepProps} onDiscovery={handleDiscovery} onAdminUnlock={() => setIsAdmin(true)} />}
-          {step === 2 && <Step2Identity   {...stepProps} />}
-          {step === 3 && <Step3Design     {...stepProps} />}
+          {step === 2 && <Step2Blueprint  {...stepProps} />}
+          {step === 3 && <Step3Identity   {...stepProps} />}
           {step === 4 && <Step4Operations {...stepProps} />}
-          {step === 5 && <Step5Branch     {...stepProps} />}
-          {step === 6 && <Step6Services   {...stepProps} />}
-          {step === 7 && <Step7Staff      {...stepProps} />}
-          {step === 8 && <Step8Finalize   {...stepProps} />}
+          {step === 5 && <Step5Services   {...stepProps} />}
+          {step === 6 && <Step6Staff      {...stepProps} />}
+          {step === 7 && <Step7Finalize   {...stepProps} />}
         </div>
       </div>
 

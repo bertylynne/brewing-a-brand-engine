@@ -1,12 +1,11 @@
 const STEPS = [
-  { label: 'Start'    },
-  { label: 'Identity' },
-  { label: 'Design'   },
-  { label: 'Hours'    },
-  { label: 'Category' },
-  { label: 'Services' },
-  { label: 'Team'     },
-  { label: 'Brief'    },
+  { label: 'Start'     },
+  { label: 'Blueprint' },
+  { label: 'Identity'  },
+  { label: 'Hours'     },
+  { label: 'Services'  },
+  { label: 'Team'      },
+  { label: 'Brief'     },
 ];
 
 export default function Stepper({ current }) {

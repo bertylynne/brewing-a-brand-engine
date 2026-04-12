@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles, Building2, Phone, Link as LinkIcon, CreditCard } from 'lucide-react';
 
 // Brand SVG icons not in this version of lucide-react
@@ -24,6 +24,14 @@ const PAYMENT_OPTIONS = [
 ];
 
 const DEFAULT_HERO_TEXT = `Precision-crafted branding for the modern craftsman. We don't just build websites; we architect digital homes for high-end service providers. Your legacy, amplified through elite design and strategic clarity.`;
+
+// Vibe-specific opening statement templates keyed by fontKit ID
+const VIBE_COPY = {
+  heritage:   `Where tradition meets precision. Every cut is a testament to the craft — shaped by years of mastery and a relentless standard of excellence. Step in and experience the art of the classic fade, perfected.`,
+  architect:  `Engineered for the modern professional. Clean lines, deliberate design, and a culture of continuous craft. This is where high standards meet high style — built for those who demand both.`,
+  serenity:   `Your comfort is our priority. From the moment you arrive, expect warmth, skill, and a space that feels like home. Great hair starts with great care — and we take both seriously.`,
+  technical:  `Precision is the product. Every appointment is a calibrated experience — structured, efficient, and executed with exacting detail. For the client who expects nothing less than optimal results.`,
+};
 
 const CHAR_LIMIT = 250;
 const TAGLINE_LIMIT = 80;
@@ -161,6 +169,18 @@ export default function Step2Identity({ onNext, onBack, data, setData, isAdmin }
   const logoFileRef = useRef();
   const addFileRef = useRef();
 
+  // Auto-fill opening statement when fontKit is set (or changes) and copy is still the generic default
+  useEffect(() => {
+    const vibeCopy = VIBE_COPY[data.fontKit];
+    if (!vibeCopy) return;
+    const currentText = data.heroText || '';
+    const isDefault = currentText === DEFAULT_HERO_TEXT || Object.values(VIBE_COPY).includes(currentText) || currentText === '';
+    if (isDefault) {
+      setData((prev) => ({ ...prev, heroText: vibeCopy }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.fontKit]);
+
   const handleTextChange = (e) => setData({ ...data, heroText: e.target.value });
 
   const handleHeroFile = (file) => {
@@ -265,7 +285,7 @@ export default function Step2Identity({ onNext, onBack, data, setData, isAdmin }
       {/* Header */}
       <div className="animate-fade-up mb-6">
         <p className="text-[11px] tracking-[0.2em] uppercase font-semibold mb-2" style={{ color: 'var(--coral)' }}>
-          — Step 02 —
+          — Step 03 —
         </p>
         <h2 className="font-serif-display text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Brand Identity
