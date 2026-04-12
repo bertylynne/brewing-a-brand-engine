@@ -25,7 +25,7 @@ const PAYMENT_OPTIONS = [
 
 const DEFAULT_HERO_TEXT = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
 
-const CHAR_LIMIT = 600;
+const CHAR_LIMIT = 250;
 const TAGLINE_LIMIT = 80;
 const MAX_PHOTOS = 8;
 
@@ -252,8 +252,9 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
   const tagline    = data.tagline || '';
   const taglineLen = tagline.length;
 
-  const nearLimit = charCount >= 500;
-  const overLimit = charCount > CHAR_LIMIT;
+  const nearLimit    = charCount >= 200;
+  const overLimit    = charCount > CHAR_LIMIT;
+  const taglineOver  = taglineLen > TAGLINE_LIMIT;
 
   const textareaBorder = overLimit
     ? '2px solid rgba(239,68,68,0.6)'
@@ -471,7 +472,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
             </div>
             <div
               className="relative rounded-xl transition-all duration-200"
-              style={{ background: 'var(--bg-raised)', border: `1px solid var(--border)` }}
+              style={{ background: 'var(--bg-raised)', border: taglineOver ? '2px solid rgba(239,68,68,0.6)' : `1px solid var(--border)` }}
             >
               <div className="flex items-start gap-2.5 px-3 pt-3 pb-2">
                 <Type className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
@@ -479,7 +480,7 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
                   value={tagline}
                   onChange={(e) => setData({ ...data, tagline: e.target.value })}
                   rows={3}
-                  maxLength={TAGLINE_LIMIT + 10}
+                  maxLength={TAGLINE_LIMIT + 20}
                   placeholder={`e.g. "Where Every Cut Tells a Story"`}
                   className="flex-1 bg-transparent text-sm leading-relaxed resize-none outline-none min-w-0"
                   style={{ color: 'var(--text-primary)' }}
@@ -495,9 +496,16 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
                 />
               </div>
             </div>
-            <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: 'var(--text-faint)' }}>
-              A short phrase that captures your brand. Leave blank if you don't have one yet.
-            </p>
+            {taglineOver ? (
+              <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1.5 animate-fade-up">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                {taglineLen - TAGLINE_LIMIT} character{taglineLen - TAGLINE_LIMIT !== 1 ? 's' : ''} over the limit.
+              </p>
+            ) : (
+              <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: 'var(--text-faint)' }}>
+                A short phrase that captures your brand. Leave blank if you don't have one yet.
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -748,16 +756,16 @@ export default function Step2Identity({ onNext, onBack, data, setData }) {
         </button>
         <button
           onClick={onNext}
-          disabled={overLimit || !data.businessName?.trim()}
-          title={overLimit ? 'Trim your copy to under 600 characters to continue' : undefined}
+          disabled={overLimit || taglineOver || !data.businessName?.trim()}
+          title={overLimit ? `Trim your opening statement to under ${CHAR_LIMIT} characters` : taglineOver ? `Trim your tagline to under ${TAGLINE_LIMIT} characters` : undefined}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-95"
           style={
-            overLimit || !data.businessName?.trim()
+            overLimit || taglineOver || !data.businessName?.trim()
               ? { background: 'var(--bg-raised)', color: 'var(--text-faint)', cursor: 'not-allowed' }
               : { background: 'var(--coral)', boxShadow: '0 4px 16px rgba(232,112,90,0.3)' }
           }
-          onMouseEnter={(e) => { if (!overLimit && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral-light)'; }}
-          onMouseLeave={(e) => { if (!overLimit && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral)'; }}
+          onMouseEnter={(e) => { if (!overLimit && !taglineOver && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral-light)'; }}
+          onMouseLeave={(e) => { if (!overLimit && !taglineOver && data.businessName?.trim()) e.currentTarget.style.background = 'var(--coral)'; }}
         >
           Continue
           <ChevronRight className="w-4 h-4" />

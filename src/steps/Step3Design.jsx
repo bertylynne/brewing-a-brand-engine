@@ -1,109 +1,246 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Palette, Wand2, Link as LinkIcon, FileText, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Palette, Type, Sparkles, ShieldCheck } from 'lucide-react';
 
-const COLOR_PRESETS = {
-  primary:   ['#c9a227','#1a1a2e','#2d6a4f','#c1121f','#023e8a','#6d2b8e'],
-  secondary: ['#152232','#f5f0e8','#1b4332','#f8edeb','#03045e','#f3e5f5'],
-  accent:    ['#e8705a','#f4a261','#52b788','#e63946','#4361ee','#b5179e'],
-};
+// ── Brand Palette definitions ─────────────────────────────────────────────────
+const PALETTES = [
+  {
+    id: 'slate',
+    name: 'The Slate',
+    tagline: 'Refined · Corporate · Trustworthy',
+    colors: { primary: '#2C3E50', secondary: '#F5F5F0', accent: '#C0A060' },
+  },
+  {
+    id: 'midnight',
+    name: 'The Midnight',
+    tagline: 'Bold · Luxurious · High-contrast',
+    colors: { primary: '#0D0D0D', secondary: '#1A1A2E', accent: '#E8C84A' },
+  },
+  {
+    id: 'studio',
+    name: 'The Studio',
+    tagline: 'Modern · Creative · Sharp',
+    colors: { primary: '#1C1C1E', secondary: '#F2F2F7', accent: '#E8705A' },
+  },
+  {
+    id: 'botanical',
+    name: 'The Botanical',
+    tagline: 'Organic · Calm · Premium',
+    colors: { primary: '#2D4A3E', secondary: '#F0EDE6', accent: '#8FAF6A' },
+  },
+];
 
-function ColorPicker({ label, colorKey, value, onChange }) {
-  const [hex, setHex] = useState(value);
-  const [inputVal, setInputVal] = useState(value);
+// ── Font Kit definitions ──────────────────────────────────────────────────────
+const FONT_KITS = [
+  {
+    id: 'architect',
+    name: 'The Architect',
+    tagline: 'Geometric sans-serif — clean and modern',
+    display: 'DM Sans',
+    body: 'Inter',
+    specimen: 'Aa',
+  },
+  {
+    id: 'heritage',
+    name: 'The Heritage',
+    tagline: 'Serif display — classic barbershop authority',
+    display: 'Playfair Display',
+    body: 'Lora',
+    specimen: 'Aa',
+  },
+  {
+    id: 'serenity',
+    name: 'The Serenity',
+    tagline: 'Rounded sans — soft, welcoming, modern',
+    display: 'Nunito',
+    body: 'Nunito',
+    specimen: 'Aa',
+  },
+  {
+    id: 'technical',
+    name: 'The Technical',
+    tagline: 'Mono-influenced — precise and industrial',
+    display: 'Space Grotesk',
+    body: 'IBM Plex Sans',
+    specimen: 'Aa',
+  },
+];
 
-  // Keep local state in sync if the parent value changes (e.g. navigating back)
-  useEffect(() => {
-    setHex(value);
-    setInputVal(value);
-  }, [value]);
-
-  const commit = (val) => {
-    const clean = val.startsWith('#') ? val : `#${val}`;
-    if (/^#[0-9a-fA-F]{6}$/.test(clean)) {
-      setHex(clean);
-      setInputVal(clean);
-      onChange(clean);
-    }
-  };
-
-  const handleNative = (e) => {
-    setHex(e.target.value);
-    setInputVal(e.target.value);
-    onChange(e.target.value);
-  };
-
+// ── Customer placeholder ──────────────────────────────────────────────────────
+function CustomerPlaceholder() {
   return (
-    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}>
-      {/* Swatch header */}
-      <div className="h-16 w-full relative" style={{ background: hex }}>
-        {/* Native colour input covers the swatch for easy picking */}
-        <input
-          type="color"
-          value={hex}
-          onChange={handleNative}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          title="Pick a colour"
-        />
-        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono font-bold"
-          style={{ background: 'rgba(0,0,0,0.4)', color: '#fff', backdropFilter: 'blur(4px)' }}>
-          {hex.toUpperCase()}
-        </div>
+    <div className="animate-fade-up delay-100 rounded-2xl border overflow-hidden" style={{ borderColor: 'rgba(201,162,39,0.25)', background: 'var(--bg-card)' }}>
+      {/* Top bar */}
+      <div className="px-5 py-3.5 border-b flex items-center gap-2.5" style={{ borderColor: 'rgba(201,162,39,0.15)', background: 'rgba(201,162,39,0.06)' }}>
+        <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--gold)' }} />
+        <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)' }}>
+          Design Curation in Progress
+        </p>
       </div>
 
-      <div className="p-3">
-        <p className="text-[10px] uppercase tracking-widest font-semibold mb-2.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      {/* Animated swatch strip */}
+      <div className="h-2 flex overflow-hidden">
+        {['#2C3E50','#C0A060','#0D0D0D','#E8C84A','#1C1C1E','#E8705A','#2D4A3E','#8FAF6A'].map((c, i) => (
+          <div key={i} className="flex-1" style={{ background: c }} />
+        ))}
+      </div>
 
-        {/* Preset swatches */}
-        <div className="flex gap-1.5 mb-2.5">
-          {COLOR_PRESETS[colorKey].map((preset) => (
-            <button
-              key={preset}
-              onClick={() => { setHex(preset); setInputVal(preset); onChange(preset); }}
-              className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex-shrink-0"
+      <div className="px-5 py-8 flex flex-col items-center text-center gap-4">
+        {/* Orbiting dot indicator */}
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center" style={{ borderColor: 'rgba(201,162,39,0.3)', background: 'rgba(201,162,39,0.07)' }}>
+            <Palette className="w-5 h-5" style={{ color: 'var(--gold)' }} />
+          </div>
+          {[0, 120, 240].map((deg, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 rounded-full animate-pulse"
               style={{
-                background: preset,
-                borderColor: hex === preset ? '#fff' : 'transparent',
-                boxShadow: hex === preset ? `0 0 0 2px ${preset}` : 'none',
+                background: 'var(--gold)',
+                opacity: 0.5,
+                top: `${50 - 46 * Math.sin((deg * Math.PI) / 180)}%`,
+                left: `${50 + 46 * Math.cos((deg * Math.PI) / 180)}%`,
+                transform: 'translate(-50%, -50%)',
+                animationDelay: `${i * 0.3}s`,
               }}
-              title={preset}
             />
           ))}
         </div>
 
-        {/* Hex text input */}
-        <div className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
-          <div className="w-3.5 h-3.5 rounded-full flex-shrink-0 border" style={{ background: hex, borderColor: 'var(--border)' }} />
-          <input
-            type="text"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            onBlur={() => commit(inputVal)}
-            onKeyDown={(e) => e.key === 'Enter' && commit(inputVal)}
-            maxLength={7}
-            placeholder="#000000"
-            className="flex-1 bg-transparent text-xs font-mono outline-none"
-            style={{ color: 'var(--text-primary)' }}
-          />
+        <div className="max-w-[280px]">
+          <h3 className="font-serif-display text-base font-bold mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>
+            Our design team is curating your custom brand palette and typography.
+          </h3>
+          <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Based on your business profile and market positioning, we'll select colours and typefaces that maximise your brand authority and conversion.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 mt-1">
+          <div className="h-px w-10" style={{ background: 'var(--border)' }} />
+          <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-faint)' }}>
+            No action needed from you
+          </p>
+          <div className="h-px w-10" style={{ background: 'var(--border)' }} />
         </div>
       </div>
     </div>
   );
 }
 
-export default function Step3Design({ onNext, onBack, data, setData }) {
-  const colors       = data.brandColors  || { primary: '#c9a227', secondary: '#152232', accent: '#e8705a' };
-  const customDesign = data.customDesign || { enabled: false, urls: ['', '', ''], vibeNotes: '' };
+// ── Palette card ──────────────────────────────────────────────────────────────
+function PaletteCard({ palette, selected, onSelect }) {
+  const { primary, secondary, accent } = palette.colors;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(palette)}
+      className="w-full text-left rounded-2xl border overflow-hidden transition-all duration-200 active:scale-[0.98]"
+      style={
+        selected
+          ? { borderColor: 'rgba(201,162,39,0.6)', boxShadow: '0 0 0 2px rgba(201,162,39,0.2)', background: 'var(--bg-card)' }
+          : { borderColor: 'var(--border)', background: 'var(--bg-card)' }
+      }
+    >
+      {/* Colour strip */}
+      <div className="h-10 flex">
+        <div className="flex-1" style={{ background: primary }} />
+        <div className="flex-1" style={{ background: secondary }} />
+        <div className="w-10 flex-shrink-0" style={{ background: accent }} />
+      </div>
 
-  const setColor = (key, val) =>
-    setData({ ...data, brandColors: { ...colors, [key]: val } });
+      <div className="px-3.5 py-3 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-bold leading-tight" style={{ color: selected ? 'var(--gold)' : 'var(--text-primary)' }}>
+            {palette.name}
+          </p>
+          <p className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--text-faint)' }}>{palette.tagline}</p>
+        </div>
 
-  const setCustom = (patch) =>
-    setData({ ...data, customDesign: { ...customDesign, ...patch } });
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {[primary, secondary, accent].map((c, i) => (
+            <div key={i} className="w-4 h-4 rounded-full border" style={{ background: c, borderColor: 'rgba(255,255,255,0.12)' }} />
+          ))}
+          {selected && (
+            <div className="w-4 h-4 rounded-full flex items-center justify-center ml-1" style={{ background: 'var(--gold)' }}>
+              <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1.5,5.5 4,8 8.5,2" />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
 
-  const updateUrl = (i, val) => {
-    const urls = [...(customDesign.urls || ['', '', ''])];
-    urls[i] = val;
-    setCustom({ urls });
+// ── Font kit card ─────────────────────────────────────────────────────────────
+function FontKitCard({ kit, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(kit)}
+      className="w-full text-left rounded-2xl border overflow-hidden transition-all duration-200 active:scale-[0.98]"
+      style={
+        selected
+          ? { borderColor: 'rgba(201,162,39,0.6)', boxShadow: '0 0 0 2px rgba(201,162,39,0.2)', background: 'var(--bg-card)' }
+          : { borderColor: 'var(--border)', background: 'var(--bg-card)' }
+      }
+    >
+      <div className="px-4 py-3.5 flex items-center gap-4">
+        {/* Specimen */}
+        <div
+          className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 border"
+          style={{
+            background: selected ? 'rgba(201,162,39,0.08)' : 'var(--bg-raised)',
+            borderColor: selected ? 'rgba(201,162,39,0.3)' : 'var(--border)',
+          }}
+        >
+          <span
+            className="text-2xl font-bold leading-none select-none"
+            style={{ color: selected ? 'var(--gold)' : 'var(--text-secondary)', fontFamily: `'${kit.display}', serif` }}
+          >
+            {kit.specimen}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold leading-tight" style={{ color: selected ? 'var(--gold)' : 'var(--text-primary)' }}>
+            {kit.name}
+          </p>
+          <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-faint)' }}>{kit.tagline}</p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--bg-surface)' }}>
+              {kit.display}
+            </span>
+            <span className="text-[9px]" style={{ color: 'var(--text-faint)' }}>+</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--bg-surface)' }}>
+              {kit.body}
+            </span>
+          </div>
+        </div>
+
+        {selected && (
+          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--gold)' }}>
+            <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1.5,5.5 4,8 8.5,2" />
+            </svg>
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function Step3Design({ onNext, onBack, data, setData, isAdmin }) {
+  const selectedPaletteId = PALETTES.find(p => p.colors.primary === data.brandColors?.primary)?.id ?? null;
+  const selectedFontKitId = data.fontKit ?? null;
+
+  const handlePalette = (palette) => {
+    setData({ ...data, brandColors: palette.colors });
+  };
+
+  const handleFontKit = (kit) => {
+    setData({ ...data, fontKit: kit.id });
   };
 
   return (
@@ -115,7 +252,7 @@ export default function Step3Design({ onNext, onBack, data, setData }) {
           — Step 03 —
         </p>
         <h2 className="font-serif-display text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Design Preferences
+          Brand Design
         </h2>
         <div className="flex items-center gap-3 my-3">
           <div className="h-px w-8" style={{ background: 'var(--gold)' }} />
@@ -123,123 +260,82 @@ export default function Step3Design({ onNext, onBack, data, setData }) {
           <div className="h-px w-8" style={{ background: 'var(--gold)' }} />
         </div>
         <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Choose your brand colours and let us know if you'd like a fully custom build.
+          {isAdmin
+            ? 'Select a brand palette and font kit for this client.'
+            : 'Your visual identity is being prepared by our team.'}
         </p>
       </div>
 
-      {/* Brand Colours */}
-      <div className="animate-fade-up delay-100 mb-7">
-        <div className="flex items-center gap-2 mb-4">
-          <Palette className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
-          <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>Brand Colours</p>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <ColorPicker label="Primary"   colorKey="primary"   value={colors.primary}   onChange={(v) => setColor('primary', v)} />
-          <ColorPicker label="Secondary" colorKey="secondary" value={colors.secondary} onChange={(v) => setColor('secondary', v)} />
-          <ColorPicker label="Accent"    colorKey="accent"    value={colors.accent}    onChange={(v) => setColor('accent', v)} />
-        </div>
-        {/* Live preview strip */}
-        <div className="mt-4 rounded-xl overflow-hidden h-10 flex" style={{ border: '1px solid var(--border)' }}>
-          {[colors.primary, colors.secondary, colors.accent].map((c, i) => (
-            <div key={i} className="flex-1 flex items-center justify-center text-[9px] font-mono font-bold"
-              style={{ background: c, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-              {c.toUpperCase()}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── Customer view ─────────────────────────────────────── */}
+      {!isAdmin && <CustomerPlaceholder />}
 
-      {/* Custom Design Upgrade */}
-      <div className="animate-fade-up delay-200 mb-8">
-        <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}>
-          {/* Toggle row */}
-          <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'var(--border-sub)', background: 'var(--bg-raised)' }}>
-            <div className="flex items-start gap-3">
-              <Wand2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: customDesign.enabled ? 'var(--gold)' : 'var(--text-muted)' }} />
-              <div>
-                <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                  I want a fully custom build
-                </p>
-                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  Share inspiration links and notes — our team will create a bespoke design from scratch.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCustom({ enabled: !customDesign.enabled })}
-              className="relative rounded-full transition-all duration-200 flex-shrink-0 ml-3"
-              style={{ background: customDesign.enabled ? 'var(--gold)' : 'var(--border)', width: '40px', height: '22px' }}
-            >
-              <span className="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-                style={{ left: customDesign.enabled ? '20px' : '3px' }} />
-            </button>
+      {/* ── Admin view ────────────────────────────────────────── */}
+      {isAdmin && (
+        <>
+          {/* Admin badge */}
+          <div className="animate-fade-up mb-5 flex items-center gap-2">
+            <ShieldCheck className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+            <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)' }}>
+              Master Mode — Admin Curation
+            </span>
           </div>
 
-          {/* Expanded fields */}
-          {customDesign.enabled && (
-            <div className="p-4 flex flex-col gap-4 animate-fade-up">
-              {/* Inspiration URLs */}
-              <div>
-                <p className="text-[10px] uppercase tracking-widest font-semibold mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                  Inspiration Links (up to 3)
-                </p>
-                <div className="flex flex-col gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5"
-                      style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
-                      <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
-                      <input
-                        type="url"
-                        value={(customDesign.urls || ['', '', ''])[i] || ''}
-                        onChange={(e) => updateUrl(i, e.target.value)}
-                        placeholder={`https://example.com (link ${i + 1})`}
-                        className="flex-1 bg-transparent text-sm outline-none"
-                        style={{ color: 'var(--text-primary)' }}
-                      />
-                      {(customDesign.urls || [])[i] && (
-                        <button onClick={() => updateUrl(i, '')} className="flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Vibe Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
-                    Vibe Notes
-                  </p>
-                  <span className="text-[11px] font-mono tabular-nums"
-                    style={{ color: (customDesign.vibeNotes || '').length > 450 ? '#f87171' : 'var(--text-faint)' }}>
-                    {(customDesign.vibeNotes || '').length}<span style={{ color: 'var(--border)' }}>/500</span>
-                  </span>
-                </div>
-                <div className="rounded-xl border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
-                  <div className="flex items-start gap-2.5 p-3">
-                    <FileText className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
-                    <textarea
-                      value={customDesign.vibeNotes || ''}
-                      onChange={(e) => setCustom({ vibeNotes: e.target.value })}
-                      rows={4}
-                      maxLength={520}
-                      placeholder={`Describe the feel you're going for — luxurious, minimal, bold, retro... anything that captures your vision.`}
-                      className="flex-1 bg-transparent text-sm leading-relaxed resize-none outline-none"
-                      style={{ color: 'var(--text-primary)' }}
-                    />
-                  </div>
-                </div>
-              </div>
+          {/* Palette selection */}
+          <div className="animate-fade-up delay-100 mb-7">
+            <div className="flex items-center gap-2 mb-4">
+              <Palette className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+              <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Brand Palette
+              </p>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="flex flex-col gap-3">
+              {PALETTES.map((p) => (
+                <PaletteCard
+                  key={p.id}
+                  palette={p}
+                  selected={selectedPaletteId === p.id}
+                  onSelect={handlePalette}
+                />
+              ))}
+            </div>
+
+            {/* Live preview strip */}
+            {data.brandColors && (
+              <div className="mt-4 rounded-xl overflow-hidden h-8 flex" style={{ border: '1px solid var(--border)' }}>
+                {[data.brandColors.primary, data.brandColors.secondary, data.brandColors.accent].map((c, i) => (
+                  <div key={i} className="flex-1 flex items-center justify-center text-[9px] font-mono font-bold"
+                    style={{ background: c, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>
+                    {c.toUpperCase()}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Font kit selection */}
+          <div className="animate-fade-up delay-200 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Type className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+              <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Font Kit
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              {FONT_KITS.map((kit) => (
+                <FontKitCard
+                  key={kit.id}
+                  kit={kit}
+                  selected={selectedFontKitId === kit.id}
+                  onSelect={handleFontKit}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Navigation */}
-      <div className="animate-fade-up delay-300 flex gap-3">
+      <div className="animate-fade-up delay-300 flex gap-3 mt-2">
         <button onClick={onBack}
           className="flex items-center gap-2 px-5 py-3.5 rounded-full border text-sm font-medium transition-all active:scale-95"
           style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>

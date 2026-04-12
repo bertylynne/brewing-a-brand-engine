@@ -52,6 +52,7 @@ const DEFAULT_DATA = {
   // ── Design Preferences (Step 3)
   brandColors:   { primary: '#c9a227', secondary: '#152232', accent: '#e8705a' },
   customDesign:  { enabled: false, urls: ['', '', ''], vibeNotes: '' },
+  fontKit:       null,  // set by admin: 'architect' | 'heritage' | 'serenity' | 'technical'
 
   // ── Operations (Step 4)
   businessHours: DEFAULT_HOURS,
