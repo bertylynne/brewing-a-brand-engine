@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronLeft, Check, Palette, Type, ShieldCheck, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Palette, Type, ShieldCheck, Sparkles, Feather } from 'lucide-react';
 
 // ── Business category options (from Step3Branch) ──────────────────────────────
 const BUSINESS_OPTIONS = [
@@ -19,6 +19,42 @@ const BUSINESS_OPTIONS = [
     emoji: '💇',
     accentRaw: '#d4a0c8',
     services: ['Blowout', 'Color Treatment', 'Hair Extensions', 'Deep Conditioning', 'Trim & Style', 'Facial'],
+  },
+];
+
+// ── Vibes (map to fontKit IDs) ────────────────────────────────────────────────
+const VIBES = [
+  {
+    id: 'heritage',
+    name: 'Heritage',
+    tagline: 'Timeless · Classic · Authoritative',
+    description: 'Rooted in tradition. Serif-forward design language for the discerning clientele.',
+    accent: '#C0A060',
+    symbol: '𝕳',
+  },
+  {
+    id: 'architect',
+    name: 'Modernist',
+    tagline: 'Precise · Urban · Forward-thinking',
+    description: 'Geometric clarity and technical edge. Built for the modern professional.',
+    accent: '#E8705A',
+    symbol: 'M',
+  },
+  {
+    id: 'serenity',
+    name: 'Serenity',
+    tagline: 'Organic · Calm · Welcoming',
+    description: 'Soft, approachable aesthetics that communicate care and craft in equal measure.',
+    accent: '#8FAF6A',
+    symbol: 'S',
+  },
+  {
+    id: 'technical',
+    name: 'Universal',
+    tagline: 'Structured · Inclusive · Versatile',
+    description: 'Broad appeal with clean execution. Efficient, bold, and built for every client.',
+    accent: '#E8C84A',
+    symbol: 'U',
   },
 ];
 
@@ -209,19 +245,80 @@ function FontKitCard({ kit, selected, onSelect }) {
   );
 }
 
+// ── Vibe card ─────────────────────────────────────────────────────────────────
+function VibeCard({ vibe, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(vibe)}
+      className="w-full text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 active:scale-[0.98]"
+      style={
+        selected
+          ? { borderColor: vibe.accent, boxShadow: `0 0 0 2px ${vibe.accent}25`, background: `${vibe.accent}08` }
+          : { borderColor: 'var(--border)', background: 'var(--bg-card)' }
+      }
+    >
+      <div className="p-4 flex items-center gap-4">
+        {/* Symbol */}
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl font-bold border transition-all"
+          style={{
+            fontFamily: vibe.id === 'heritage' ? "'Playfair Display', serif" : vibe.id === 'serenity' ? "'Nunito', sans-serif" : 'system-ui',
+            background: selected ? `${vibe.accent}15` : 'var(--bg-raised)',
+            borderColor: selected ? `${vibe.accent}50` : 'var(--border)',
+            color: selected ? vibe.accent : 'var(--text-secondary)',
+          }}
+        >
+          {vibe.symbol}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-sm font-bold" style={{ color: selected ? vibe.accent : 'var(--text-primary)' }}>
+              {vibe.name}
+            </p>
+            <span className="text-[9px] uppercase tracking-widest font-semibold px-1.5 py-0.5 rounded"
+              style={{ background: selected ? `${vibe.accent}15` : 'var(--bg-surface)', color: selected ? vibe.accent : 'var(--text-faint)' }}>
+              {vibe.tagline.split(' · ')[0]}
+            </span>
+          </div>
+          <p className="text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>{vibe.description}</p>
+        </div>
+
+        <div
+          className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+          style={
+            selected
+              ? { borderColor: vibe.accent, background: vibe.accent }
+              : { borderColor: 'var(--border)', background: 'transparent' }
+          }
+        >
+          {selected && (
+            <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1.5,5.5 4,8 8.5,2" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }) {
-  const selected         = data.businessType || null;
+  const selected          = data.businessType || null;
   const selectedPaletteId = PALETTES.find(p => p.colors.primary === data.brandColors?.primary)?.id ?? null;
-  const selectedFontKitId = data.fontKit ?? null;
+  const selectedFontKitId = data.fontKit ?? null;  // fontKit ID doubles as the vibe ID
+  const selectedVibeId    = selectedFontKitId;     // same key — vibe selection sets fontKit
 
   const handleBusinessType = (id) => setData({ ...data, businessType: id });
   const handlePalette      = (p)  => setData({ ...data, brandColors: p.colors });
   const handleFontKit      = (k)  => setData({ ...data, fontKit: k.id });
+  const handleVibe         = (v)  => setData({ ...data, fontKit: v.id });  // vibe → fontKit
 
-  // Continue is gated on business type always; admin must also pick palette+font
+  // Continue: client needs category; admin needs all three (vibe, palette, font)
   const canContinue = isAdmin
-    ? !!selected && !!selectedPaletteId && !!selectedFontKitId
+    ? !!selected && !!selectedPaletteId && !!selectedVibeId
     : !!selected;
 
   return (
@@ -329,8 +426,31 @@ export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }
             </span>
           </div>
 
-          {/* Palette selection */}
+          {/* Vibe selection */}
           <div className="animate-fade-up delay-100 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Feather className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+              <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Brand Vibe
+              </p>
+              {!selectedVibeId && (
+                <span className="ml-auto text-[10px] font-semibold" style={{ color: 'var(--coral)' }}>Required</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {VIBES.map((v) => (
+                <VibeCard
+                  key={v.id}
+                  vibe={v}
+                  selected={selectedVibeId === v.id}
+                  onSelect={handleVibe}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Palette selection */}
+          <div className="animate-fade-up delay-150 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Palette className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
               <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
@@ -362,28 +482,6 @@ export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }
             )}
           </div>
 
-          {/* Font kit selection */}
-          <div className="animate-fade-up delay-200 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Type className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
-              <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Font Kit
-              </p>
-              {!selectedFontKitId && (
-                <span className="ml-auto text-[10px] font-semibold" style={{ color: 'var(--coral)' }}>Required</span>
-              )}
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {FONT_KITS.map((kit) => (
-                <FontKitCard
-                  key={kit.id}
-                  kit={kit}
-                  selected={selectedFontKitId === kit.id}
-                  onSelect={handleFontKit}
-                />
-              ))}
-            </div>
-          </div>
         </>
       )}
 
@@ -425,7 +523,7 @@ export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }
           }
           onMouseEnter={(e) => { if (canContinue) e.currentTarget.style.background = 'var(--coral-light)'; }}
           onMouseLeave={(e) => { if (canContinue) e.currentTarget.style.background = 'var(--coral)'; }}
-          title={!selected ? 'Select a business category to continue' : isAdmin && !selectedPaletteId ? 'Select a palette to continue' : isAdmin && !selectedFontKitId ? 'Select a font kit to continue' : undefined}
+          title={!selected ? 'Select a business category to continue' : isAdmin && !selectedVibeId ? 'Select a brand vibe to continue' : isAdmin && !selectedPaletteId ? 'Select a palette to continue' : undefined}
         >
           Continue <ChevronRight className="w-4 h-4" />
         </button>

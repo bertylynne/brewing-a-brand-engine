@@ -25,12 +25,12 @@ const PAYMENT_OPTIONS = [
 
 const DEFAULT_HERO_TEXT = `Precision-crafted branding for the modern craftsman. We don't just build websites; we architect digital homes for high-end service providers. Your legacy, amplified through elite design and strategic clarity.`;
 
-// Vibe-specific opening statement templates keyed by fontKit ID
+// Vibe-specific opening statement templates keyed by fontKit/vibe ID
 const VIBE_COPY = {
-  heritage:   `Where tradition meets precision. Every cut is a testament to the craft — shaped by years of mastery and a relentless standard of excellence. Step in and experience the art of the classic fade, perfected.`,
-  architect:  `Engineered for the modern professional. Clean lines, deliberate design, and a culture of continuous craft. This is where high standards meet high style — built for those who demand both.`,
-  serenity:   `Your comfort is our priority. From the moment you arrive, expect warmth, skill, and a space that feels like home. Great hair starts with great care — and we take both seriously.`,
-  technical:  `Precision is the product. Every appointment is a calibrated experience — structured, efficient, and executed with exacting detail. For the client who expects nothing less than optimal results.`,
+  heritage:   `Steeped in tradition, defined by excellence. We specialise in timeless cuts and classic shaves for the modern gentleman — where every visit is a ritual and every detail is intentional.`,
+  architect:  `Precision-cut. Future-forward. We redefine the urban aesthetic with sharp lines and technical mastery — a space engineered for the professional who demands both performance and style.`,
+  serenity:   `A sanctuary for style. Discover organic beauty and sophisticated hair artistry in a space designed for tranquility — where your comfort is the craft and every detail is curated just for you.`,
+  technical:  `Bold style for everyone. We blend technical expertise with creative vision to deliver a personalised experience — structured, inclusive, and built around what makes you feel your best.`,
 };
 
 const CHAR_LIMIT = 250;
