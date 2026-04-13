@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import { VIBE_COPY } from '../App';
 import { Upload, ImageIcon, ChevronRight, ChevronLeft, RefreshCw, AlertCircle, Type, X, Plus, Store, Sofa, Sparkles, Building2, Phone, Link as LinkIcon, CreditCard } from 'lucide-react';
 
 // Brand SVG icons not in this version of lucide-react
@@ -25,13 +26,6 @@ const PAYMENT_OPTIONS = [
 
 const DEFAULT_HERO_TEXT = `Precision-crafted branding for the modern craftsman. We don't just build websites; we architect digital homes for high-end service providers. Your legacy, amplified through elite design and strategic clarity.`;
 
-// Vibe-specific opening statement templates keyed by fontKit/vibe ID
-const VIBE_COPY = {
-  heritage:   `Steeped in tradition, defined by excellence. We specialise in timeless cuts and classic shaves for the modern gentleman — where every visit is a ritual and every detail is intentional.`,
-  architect:  `Precision-cut. Future-forward. We redefine the urban aesthetic with sharp lines and technical mastery — a space engineered for the professional who demands both performance and style.`,
-  serenity:   `A sanctuary for style. Discover organic beauty and sophisticated hair artistry in a space designed for tranquility — where your comfort is the craft and every detail is curated just for you.`,
-  technical:  `Bold style for everyone. We blend technical expertise with creative vision to deliver a personalised experience — structured, inclusive, and built around what makes you feel your best.`,
-};
 
 const CHAR_LIMIT = 250;
 const TAGLINE_LIMIT = 80;
@@ -168,18 +162,6 @@ export default function Step2Identity({ onNext, onBack, data, setData, isAdmin }
   const heroFileRef = useRef();
   const logoFileRef = useRef();
   const addFileRef = useRef();
-
-  // Auto-fill opening statement when fontKit is set (or changes) and copy is still the generic default
-  useEffect(() => {
-    const vibeCopy = VIBE_COPY[data.fontKit];
-    if (!vibeCopy) return;
-    const currentText = data.heroText || '';
-    const isDefault = currentText === DEFAULT_HERO_TEXT || Object.values(VIBE_COPY).includes(currentText) || currentText === '';
-    if (isDefault) {
-      setData((prev) => ({ ...prev, heroText: vibeCopy }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.fontKit]);
 
   const handleTextChange = (e) => setData({ ...data, heroText: e.target.value });
 
@@ -403,7 +385,7 @@ export default function Step2Identity({ onNext, onBack, data, setData, isAdmin }
         )}
 
         <button
-          onClick={() => setData({ ...data, heroText: DEFAULT_HERO_TEXT })}
+          onClick={() => setData({ ...data, heroText: VIBE_COPY[data.fontKit] || DEFAULT_HERO_TEXT })}
           className="mt-2 flex items-center gap-1.5 text-[11px] transition-colors"
           style={{ color: 'var(--text-faint)' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--gold)'; }}

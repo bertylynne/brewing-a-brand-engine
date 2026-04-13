@@ -13,6 +13,14 @@ const TOTAL_STEPS = 7;
 
 const DEFAULT_HERO = `Welcome to our premier barbershop and salon — where craftsmanship meets style. Our team of experienced professionals is dedicated to delivering exceptional cuts, styles, and grooming services tailored to you. Whether you're here for a classic fade, a fresh trim, or a full beauty treatment, we've got you covered. Walk in, sit back, and leave looking your absolute best.`;
 
+// Vibe → opening statement map (single source of truth, shared with Step3Identity)
+export const VIBE_COPY = {
+  heritage:  `Steeped in tradition, defined by excellence. We specialise in timeless cuts and classic shaves for the modern gentleman — where every visit is a ritual and every detail is intentional.`,
+  architect: `Precision-cut. Future-forward. We redefine the urban aesthetic with sharp lines and technical mastery — a space engineered for the professional who demands both performance and style.`,
+  serenity:  `A sanctuary for style. Discover organic beauty and sophisticated hair artistry in a space designed for tranquility — where your comfort is the craft and every detail is curated just for you.`,
+  technical: `Bold style for everyone. We blend technical expertise with creative vision to deliver a personalised experience — structured, inclusive, and built around what makes you feel your best.`,
+};
+
 // Build a URL-safe slug from a business name
 export function slugify(name) {
   return (name || '')
@@ -79,6 +87,14 @@ export default function App() {
     const bizId  = params.get('biz_id');
     if (bizId) setData((prev) => ({ ...prev, bizId }));
   }, []);
+
+  // Memory wipe: whenever the vibe (fontKit) changes, immediately overwrite heroText
+  // so the Identity step always arrives pre-filled with the correct vibe copy.
+  useEffect(() => {
+    const copy = VIBE_COPY[data.fontKit];
+    if (copy) setData((prev) => ({ ...prev, heroText: copy }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.fontKit]);
 
   const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const goBack = () => setStep((s) => Math.max(s - 1, 1));
