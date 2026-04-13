@@ -138,13 +138,22 @@ function StatusToggle({ value, onChange }) {
 // ── Storage helpers ───────────────────────────────────────────────────────────
 const BUCKET = 'post-images';
 
+// Uses anonClient so Storage RLS sees the anon role (same as DB inserts)
 async function uploadToStorage(file, folder = 'posts') {
-  const ext  = file.name.split('.').pop();
+  const ext  = file.name.split('.').pop().toLowerCase();
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-  if (error) throw error;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  console.log('[Storage] Uploading to bucket:', BUCKET, '| path:', path);
+  const { data: uploadData, error: uploadErr } = await anonClient.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: true, cacheControl: '3600' });
+  if (uploadErr) {
+    console.error('[Storage] Upload failed:', JSON.stringify(uploadErr));
+    throw new Error(uploadErr.message || 'Storage upload failed');
+  }
+  console.log('[Storage] Upload OK:', uploadData);
+  const { data: urlData } = anonClient.storage.from(BUCKET).getPublicUrl(path);
+  console.log('[Storage] Public URL:', urlData.publicUrl);
+  return urlData.publicUrl;
 }
 
 // ── Newsroom toast ────────────────────────────────────────────────────────────
@@ -1483,21 +1492,27 @@ export default function Newsroom() {
     }
   };
 
-  // Upload hero image → Storage → update featured_image in DB → update local state
+  // Upload hero image → Storage → UPDATE featured_image column → show thumbnail
   const handleHeroUpload = async (postId, publicUrl) => {
-    // Optimistic local update
+    // ① Optimistic UI — thumbnail appears immediately
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: publicUrl } : p));
 
-    const { error } = await supabase
+    console.log('[Newsroom] Updating featured_image for post', postId, '→', publicUrl);
+
+    // ② DB UPDATE on the exact post row, targeting featured_image column
+    const { data: updateData, error: updateErr } = await anonClient
       .from('posts')
       .update({ featured_image: publicUrl })
-      .eq('id', postId);
+      .eq('id', postId)
+      .select('id, featured_image');
 
-    if (error) {
-      console.error('[Newsroom] featured_image update failed:', error.message);
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
+    if (updateErr) {
+      // Log full error object for diagnosis
+      console.error('[Newsroom] featured_image UPDATE failed:', JSON.stringify(updateErr));
+      // Keep optimistic thumbnail so user can see it worked in storage even if DB write failed
+      fireToast('Upload saved — DB sync failed', `Error: ${updateErr.message}`);
     } else {
-      console.log('[Newsroom] ✅ featured_image saved for post', postId);
+      console.log('[Newsroom] ✅ featured_image persisted:', updateData);
       const post = posts.find(p => p.id === postId);
       fireToast('Image Brewed!', post?.title ? `Hero set for "${post.title}"` : 'Featured image saved to database.');
     }
