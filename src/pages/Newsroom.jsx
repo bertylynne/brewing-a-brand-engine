@@ -282,31 +282,33 @@ function ImportDock({ onImportSuccess }) {
     setSaving(true);
     setError(null);
     setSuccess(null);
-    try {
-      const { error: dbErr } = await supabase
-        .from('posts')
-        .insert(preview);
 
-      if (dbErr) throw dbErr;
+    console.log('[ImportDock] Starting insert →', preview);
 
-      setSuccess(`${preview.length} post${preview.length !== 1 ? 's' : ''} saved to database.`);
-      setRaw('');
-      setPreview(null);
-      // Notify parent to refresh the list from DB
-      await onImportSuccess();
-    } catch (err) {
-      const msg = err?.message || String(err);
-      if (msg.includes('row-level security') || msg.includes('42501')) {
-        setError(
-          'INSERT blocked by Row-Level Security. In your Supabase dashboard → Authentication → Policies → posts table, add a policy: ' +
-          'CREATE POLICY "allow_anon_insert" ON posts FOR INSERT TO anon WITH CHECK (true);'
-        );
-      } else {
-        setError(`Database error: ${msg}`);
-      }
-    } finally {
+    const { data, error: dbErr } = await supabase
+      .from('posts')
+      .insert(preview)
+      .select();
+
+    console.log('[ImportDock] Supabase response → data:', data, ' | error:', dbErr);
+
+    if (dbErr) {
+      console.error('[ImportDock] Insert failed. Code:', dbErr.code, '| Message:', dbErr.message, '| Details:', dbErr.details);
+      const msg = dbErr.message || '';
+      const isRls = dbErr.code === '42501' || msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('policy');
+      setError(isRls ? 'rls' : `${dbErr.code ?? 'DB error'}: ${msg}`);
       setSaving(false);
+      return;
     }
+
+    console.log('[ImportDock] ✅ Insert succeeded. Rows saved:', data?.length ?? preview.length);
+    setSuccess(`${preview.length} post${preview.length !== 1 ? 's' : ''} saved to database.`);
+    setRaw('');
+    setPreview(null);
+    setSaving(false);
+
+    // Reload Post Manager from DB so the new rows are immediately visible
+    await onImportSuccess();
   };
 
   return (
@@ -408,28 +410,28 @@ function ImportDock({ onImportSuccess }) {
           >
             <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: 'rgba(239,68,68,0.15)', color: '#dc2626' }}>
               <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-bold">Insert Failed</span>
+              <span className="font-bold">{error === 'rls' ? 'Row-Level Security is blocking the insert' : 'Insert Failed'}</span>
             </div>
-            {error.includes('CREATE POLICY') ? (
-              <div className="px-4 py-3 flex flex-col gap-2">
-                <p style={{ color: '#dc2626' }}>INSERT blocked by Row-Level Security on the <code className="font-mono bg-red-50 px-1 rounded">posts</code> table.</p>
-                <p className="font-semibold" style={{ color: '#7f1d1d' }}>Run this in your Supabase SQL Editor:</p>
+            {error === 'rls' ? (
+              <div className="px-4 py-3 flex flex-col gap-2.5">
+                <p style={{ color: '#991b1b' }}>
+                  The <code className="font-mono bg-red-50 border border-red-200 px-1 rounded">posts</code> table has RLS enabled with no INSERT policy for the <code className="font-mono bg-red-50 border border-red-200 px-1 rounded">anon</code> role.
+                </p>
+                <p className="font-bold" style={{ color: '#7f1d1d' }}>Fix: run this in your Supabase SQL Editor</p>
                 <pre
-                  className="rounded-lg px-3 py-2 text-[10px] font-mono leading-relaxed overflow-x-auto"
-                  style={{ background: '#1e1e2e', color: '#cdd6f4' }}
-                >
-{`CREATE POLICY "allow_anon_insert"
+                  className="rounded-lg px-3 py-2.5 text-[11px] font-mono leading-relaxed overflow-x-auto select-all"
+                  style={{ background: '#1e1e2e', color: '#cdd6f4', userSelect: 'all' }}
+                >{`CREATE POLICY "allow_anon_insert"
   ON public.posts
   FOR INSERT
   TO anon
-  WITH CHECK (true);`}
-                </pre>
-                <p className="text-[10px]" style={{ color: '#b45309' }}>
-                  Dashboard → Table Editor → posts → RLS → New Policy → For full customization
+  WITH CHECK (true);`}</pre>
+                <p style={{ color: '#b45309' }}>
+                  Then click <strong>Save to DB</strong> again — the insert will go through immediately.
                 </p>
               </div>
             ) : (
-              <p className="px-4 py-3 leading-relaxed" style={{ color: '#dc2626' }}>{error}</p>
+              <p className="px-4 py-3 leading-relaxed font-mono" style={{ color: '#dc2626' }}>{error}</p>
             )}
           </div>
         )}
