@@ -17,12 +17,18 @@ const BORDER      = 'rgba(44,62,80,0.12)';
 const ERROR_RED   = '#E57373';
 
 // ── Auth helpers ───────────────────────────────────────────────────────────────
+// localStorage persists across page navigations, new tabs, and browser restarts.
+// Call clearAuth() to force a logout (e.g. future logout button).
 export function isAuthed() {
-  return sessionStorage.getItem(SESSION_KEY) === 'true';
+  try { return localStorage.getItem(SESSION_KEY) === 'true'; } catch { return false; }
 }
 
 function grantAuth() {
-  sessionStorage.setItem(SESSION_KEY, 'true');
+  try { localStorage.setItem(SESSION_KEY, 'true'); } catch { /* incognito storage blocked */ }
+}
+
+export function clearAuth() {
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* noop */ }
 }
 
 // ── LoginGate ──────────────────────────────────────────────────────────────────
