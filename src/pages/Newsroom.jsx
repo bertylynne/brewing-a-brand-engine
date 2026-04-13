@@ -378,7 +378,7 @@ function ImportDock({ onImportSuccess }) {
 
     console.log('[ImportDock] Inserting payload →', payload);
 
-    const { data, error: dbErr } = await supabase
+    const { data, error: dbErr } = await anonClient
       .from('posts')
       .insert(payload)
       .select();
@@ -1210,19 +1210,18 @@ function DbAudit({ localPosts }) {
     setLoading(true);
     setError(null);
     try {
-      // Try the most-likely table names in sequence
-      const tables = ['posts', 'articles', 'blog_posts', 'content_items', 'newsroom_posts'];
-      let found = null;
-      for (const t of tables) {
-        const { data, error: e } = await supabase.from(t).select('*').limit(50);
-        if (!e) { found = { table: t, rows: data }; break; }
-      }
-      if (found) {
-        setRows(found);
-        setSource('db');
-      } else {
-        setError('No posts table found in the database. Showing local state only.');
+      // Single target: lowercase 'posts' table only
+      const { data, error: e } = await anonClient
+        .from('posts')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(100);
+      if (e) {
+        setError(`posts table error: ${e.message}`);
         setSource('local');
+      } else {
+        setRows({ table: 'posts', rows: data });
+        setSource('db');
       }
     } catch (err) {
       setError(String(err));
@@ -1449,11 +1448,11 @@ export default function Newsroom() {
   const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
   const clearToast = useCallback(() => setToast(null), []);
 
-  // Fetch all posts from Supabase — this is the single source of truth
+  // Fetch all posts from Supabase — single source of truth, lowercase 'posts' table
   const loadPostsFromDb = async () => {
     setDbLoading(true);
     setDbError(null);
-    const { data, error } = await supabase
+    const { data, error } = await anonClient
       .from('posts')
       .select('id, title, content, excerpt, date, industry_tag, status, featured_image, created_at')
       .order('date', { ascending: false });
@@ -1462,7 +1461,9 @@ export default function Newsroom() {
       console.error('[Newsroom] loadPostsFromDb error:', error.message);
       setDbError(error.message);
     } else {
-      setPosts((data || []).map(dbRowToPost));
+      const mapped = (data || []).map(dbRowToPost);
+      console.log('[Newsroom] Loaded', mapped.length, 'posts. IDs:', mapped.map(p => p.id));
+      setPosts(mapped);
     }
     setDbLoading(false);
   };
@@ -1479,27 +1480,33 @@ export default function Newsroom() {
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
 
     // Map local field names → DB column names
-    const dbField = field === 'industry' ? 'industry_tag' : field; // 'status' stays as 'status'
-    const { error } = await supabase
+    const dbField = field === 'industry' ? 'industry_tag' : field;
+    console.log(`[Newsroom] updatePost id=${id} | col=${dbField} | val=${value}`);
+    const { error } = await anonClient
       .from('posts')
       .update({ [dbField]: value })
       .eq('id', id);
 
     if (error) {
-      console.error(`[Newsroom] updatePost failed for field "${field}":`, error.message);
-      // Revert on failure by reloading from DB
+      console.error(`[Newsroom] updatePost failed for field "${field}":`, JSON.stringify(error));
       loadPostsFromDb();
     }
   };
 
   // Upload hero image → Storage → UPDATE featured_image column → show thumbnail
   const handleHeroUpload = async (postId, publicUrl) => {
-    // ① Optimistic UI — thumbnail appears immediately
+    // ① Guard: confirm we have a valid post ID before touching the DB
+    if (!postId) {
+      console.error('[Newsroom] handleHeroUpload called with no postId — aborting');
+      fireToast('Upload error', 'No post ID — cannot save image link.');
+      return;
+    }
+    console.log(`[Newsroom] handleHeroUpload → post id=${postId} | url=${publicUrl}`);
+
+    // ② Optimistic UI — thumbnail appears immediately
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: publicUrl } : p));
 
-    console.log('[Newsroom] Updating featured_image for post', postId, '→', publicUrl);
-
-    // ② DB UPDATE on the exact post row, targeting featured_image column
+    // ③ DB UPDATE — lowercase 'posts' table, existing row, featured_image column only
     const { data: updateData, error: updateErr } = await anonClient
       .from('posts')
       .update({ featured_image: publicUrl })
@@ -1507,12 +1514,10 @@ export default function Newsroom() {
       .select('id, featured_image');
 
     if (updateErr) {
-      // Log full error object for diagnosis
       console.error('[Newsroom] featured_image UPDATE failed:', JSON.stringify(updateErr));
-      // Keep optimistic thumbnail so user can see it worked in storage even if DB write failed
       fireToast('Upload saved — DB sync failed', `Error: ${updateErr.message}`);
     } else {
-      console.log('[Newsroom] ✅ featured_image persisted:', updateData);
+      console.log('[Newsroom] ✅ featured_image confirmed in DB:', updateData);
       const post = posts.find(p => p.id === postId);
       fireToast('Image Brewed!', post?.title ? `Hero set for "${post.title}"` : 'Featured image saved to database.');
     }
