@@ -324,6 +324,7 @@ function ImportDock({ onImportSuccess }) {
   const [preview, setPreview] = useState(null); // parsed + normalised rows before save
 
   // Parse JSON into preview (no DB call yet)
+  // id is intentionally excluded — Supabase auto-generates it
   const handleParse = () => {
     setError(null);
     setSuccess(null);
@@ -333,12 +334,13 @@ function ImportDock({ onImportSuccess }) {
       const parsed = JSON.parse(raw);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
       const normalised = arr.map((p) => ({
-        title:        p.title        || p.name            || 'Untitled Post',
-        content:      p.content      || p.body            || p.text          || null,
-        excerpt:      p.excerpt      || p.summary         || p.description   || null,
-        date:         p.date         || p.published_at    || new Date().toISOString().slice(0, 10),
-        industry_tag: p.industry_tag || p.industry        || p.tag           || p.category || null,
-        status:       p.status       || 'draft',
+        // Only these six columns — no id, no created_at, nothing else
+        title:        p.title        || p.name         || 'Untitled Post',
+        content:      p.content      || p.body         || p.text        || null,
+        excerpt:      p.excerpt      || p.summary      || p.description || null,
+        date:         p.date         || p.published_at || new Date().toISOString().slice(0, 10),
+        industry_tag: p.industry_tag || p.industry     || p.tag         || p.category || null,
+        status:       p.status       || 'Draft',
       }));
       setPreview(normalised);
     } catch {
@@ -353,26 +355,34 @@ function ImportDock({ onImportSuccess }) {
     setError(null);
     setSuccess(null);
 
-    console.log('[ImportDock] Starting insert →', preview);
+    // Build clean payload — only the six allowed columns, no id or extras
+    const payload = preview.map(({ title, content, excerpt, date, industry_tag, status }) => ({
+      title, content, excerpt, date, industry_tag, status,
+    }));
+
+    console.log('[ImportDock] Inserting payload →', payload);
 
     const { data, error: dbErr } = await supabase
       .from('posts')
-      .insert(preview)
+      .insert(payload)
       .select();
 
-    console.log('[ImportDock] Supabase response → data:', data, ' | error:', dbErr);
+    console.log('[ImportDock] Supabase response → data:', data, '| error:', dbErr);
 
     if (dbErr) {
-      console.error('[ImportDock] Insert failed. Code:', dbErr.code, '| Message:', dbErr.message, '| Details:', dbErr.details);
+      console.error('[ImportDock] Insert failed. Code:', dbErr.code, '| Message:', dbErr.message);
       const msg = dbErr.message || '';
       const isRls = dbErr.code === '42501' || msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('policy');
+      // Clear stale preview so the user starts fresh on retry
+      setPreview(null);
+      setRaw('');
       setError(isRls ? 'rls' : `${dbErr.code ?? 'DB error'}: ${msg}`);
       setSaving(false);
       return;
     }
 
-    console.log('[ImportDock] ✅ Insert succeeded. Rows saved:', data?.length ?? preview.length);
-    setSuccess(`${preview.length} post${preview.length !== 1 ? 's' : ''} saved to database.`);
+    console.log('[ImportDock] ✅ Insert succeeded. Rows saved:', data?.length ?? payload.length);
+    setSuccess(`${payload.length} post${payload.length !== 1 ? 's' : ''} saved to database.`);
     setRaw('');
     setPreview(null);
     setSaving(false);
