@@ -830,6 +830,267 @@ function ImageLibrary() {
   );
 }
 
+// ── Create Post Form ──────────────────────────────────────────────────────────
+function CreatePostForm({ onSuccess, onCancel }) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [title,       setTitle]       = useState('');
+  const [content,     setContent]     = useState('');
+  const [excerpt,     setExcerpt]     = useState('');
+  const [date,        setDate]        = useState(today);
+  const [industryTag, setIndustryTag] = useState('');
+  const [status,      setStatus]      = useState('Draft');
+  const [saving,      setSaving]      = useState(false);
+  const [error,       setError]       = useState(null);
+
+  const resetForm = () => {
+    setTitle(''); setContent(''); setExcerpt('');
+    setDate(today); setIndustryTag(''); setStatus('Draft');
+    setError(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) { setError('Title is required.'); return; }
+
+    // Validate date — must be YYYY-MM-DD
+    const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date
+      : new Date().toISOString().slice(0, 10);
+
+    // Explicit payload — no id, no created_at, nothing else
+    const payload = {
+      title:        title.trim(),
+      content:      content.trim()     || null,
+      excerpt:      excerpt.trim()     || null,
+      date:         isoDate,
+      industry_tag: industryTag        || null,
+      status:       status,
+    };
+
+    console.log('[CreatePost] Inserting →', payload);
+    setSaving(true);
+    setError(null);
+
+    const { data, error: dbErr } = await supabase
+      .from('posts')
+      .insert([payload])
+      .select();
+
+    console.log('[CreatePost] Response → data:', data, '| error:', dbErr);
+
+    if (dbErr) {
+      console.error('[CreatePost] Insert failed:', dbErr.code, dbErr.message);
+      setError(`${dbErr.code ?? 'Error'}: ${dbErr.message}`);
+      setSaving(false);
+      return;
+    }
+
+    console.log('[CreatePost] ✅ Created post id:', data?.[0]?.id);
+    resetForm();
+    setSaving(false);
+    await onSuccess(); // refresh list + navigate back
+  };
+
+  const published = status === 'Published';
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+        {/* Card */}
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ borderColor: `${SIGNAL}30`, background: WHITE, boxShadow: '0 2px 12px rgba(100,204,241,0.08)' }}
+        >
+          {/* Header */}
+          <div
+            className="flex items-center gap-3 px-5 py-4 border-b"
+            style={{ borderColor: `${SIGNAL}20`, background: `${SIGNAL}06` }}
+          >
+            <FileText className="w-4 h-4 flex-shrink-0" style={{ color: SIGNAL }} />
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: SLATE }}>New Post</p>
+              <p className="text-[10px]" style={{ color: SLATE_MUTED }}>Saved directly to the Supabase posts table</p>
+            </div>
+            <span
+              className="text-[9px] font-mono px-2 py-0.5 rounded border"
+              style={{ borderColor: `${SIGNAL}30`, color: SIGNAL, background: `${SIGNAL}0a` }}
+            >
+              6 fields · no id
+            </span>
+          </div>
+
+          <div className="p-5 flex flex-col gap-4">
+
+            {/* Title */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: SLATE_MUTED }}>
+                Title <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => { setTitle(e.target.value); setError(null); }}
+                placeholder="Enter post title…"
+                className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
+                style={{ background: PARCHMENT, borderColor: `${SIGNAL}25`, color: SLATE }}
+                onFocus={(e) => { e.target.style.borderColor = `${SIGNAL}60`; }}
+                onBlur={(e)  => { e.target.style.borderColor = `${SIGNAL}25`; }}
+                autoFocus
+              />
+            </div>
+
+            {/* Date + Industry row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: SLATE_MUTED }}>
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
+                  style={{ background: PARCHMENT, borderColor: `${SIGNAL}25`, color: SLATE }}
+                  onFocus={(e) => { e.target.style.borderColor = `${SIGNAL}60`; }}
+                  onBlur={(e)  => { e.target.style.borderColor = `${SIGNAL}25`; }}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: SLATE_MUTED }}>
+                  Industry Tag
+                </label>
+                <IndustryDropdown value={industryTag} onChange={setIndustryTag} />
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="flex items-center gap-4">
+              <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: SLATE_MUTED }}>
+                Status
+              </label>
+              <button
+                type="button"
+                onClick={() => setStatus(published ? 'Draft' : 'Published')}
+                className="flex items-center gap-2 select-none"
+              >
+                <div
+                  className="relative rounded-full transition-all duration-200"
+                  style={{ background: published ? SIGNAL : SLATE_FAINT, width: '36px', height: '20px' }}
+                >
+                  <span
+                    className="absolute top-[3px] w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-all duration-200"
+                    style={{ left: published ? '17px' : '3px' }}
+                  />
+                </div>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: published ? SIGNAL_DIM : SLATE_FAINT }}
+                >
+                  {published ? 'Published' : 'Draft'}
+                </span>
+              </button>
+            </div>
+
+            {/* Excerpt */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: SLATE_MUTED }}>
+                Excerpt <span style={{ color: SLATE_FAINT }}>(optional)</span>
+              </label>
+              <textarea
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                rows={3}
+                placeholder="Short summary shown in cards and listings…"
+                className="w-full rounded-xl border px-4 py-3 text-sm outline-none resize-none transition-colors leading-relaxed"
+                style={{ background: PARCHMENT, borderColor: `${SIGNAL}25`, color: SLATE }}
+                onFocus={(e) => { e.target.style.borderColor = `${SIGNAL}60`; }}
+                onBlur={(e)  => { e.target.style.borderColor = `${SIGNAL}25`; }}
+              />
+            </div>
+
+            {/* Content */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: SLATE_MUTED }}>
+                Content <span style={{ color: SLATE_FAINT }}>(optional)</span>
+              </label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={7}
+                placeholder="Full article body…"
+                className="w-full rounded-xl border px-4 py-3 text-sm outline-none resize-none transition-colors leading-relaxed"
+                style={{ background: PARCHMENT, borderColor: `${SIGNAL}25`, color: SLATE }}
+                onFocus={(e) => { e.target.style.borderColor = `${SIGNAL}60`; }}
+                onBlur={(e)  => { e.target.style.borderColor = `${SIGNAL}25`; }}
+              />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div
+                className="flex items-start gap-2 rounded-xl px-4 py-3 text-xs"
+                style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', color: '#dc2626' }}
+              >
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                <span className="font-mono">{error}</span>
+              </div>
+            )}
+
+            {/* Payload preview — always visible so user can confirm what's being sent */}
+            <div
+              className="rounded-xl border px-3.5 py-3"
+              style={{ borderColor: BORDER2, background: PARCHMENT }}
+            >
+              <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: SLATE_FAINT }}>
+                Payload preview (no id)
+              </p>
+              <pre className="text-[9px] font-mono leading-relaxed overflow-x-auto" style={{ color: SLATE_MUTED }}>
+{JSON.stringify({
+  title:        title.trim()    || '…',
+  content:      content.trim()  || null,
+  excerpt:      excerpt.trim()  || null,
+  date:         /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0,10),
+  industry_tag: industryTag     || null,
+  status,
+}, null, 2)}
+              </pre>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => { resetForm(); onCancel(); }}
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all"
+            style={{ background: PARCHMENT2, color: SLATE2, border: `1px solid ${BORDER}` }}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!title.trim() || saving}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold uppercase tracking-wider text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: SIGNAL, boxShadow: `0 4px 14px ${SIGNAL}40` }}
+            onMouseEnter={(e) => { if (!saving && title.trim()) e.currentTarget.style.background = SIGNAL_DIM; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = SIGNAL; }}
+          >
+            {saving
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+              : <><Download className="w-4 h-4" /> Save to Database</>
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  );
+}
+
 // ── Sidebar nav ────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { id: 'all',     label: 'All Posts',     icon: LayoutGrid },
@@ -1296,14 +1557,16 @@ export default function Newsroom() {
               {activeNav === 'all'     ? 'All Posts'     :
                activeNav === 'drafts'  ? 'Drafts'        :
                activeNav === 'library' ? 'Image Library' :
-               activeNav === 'audit'   ? 'DB Audit'      : 'Import Dock'}
+               activeNav === 'audit'   ? 'DB Audit'      :
+               activeNav === 'create'  ? 'New Post'      : 'Import Dock'}
             </h1>
             <p className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: SLATE_MUTED }}>
               {activeNav === 'import'  ? 'Paste JSON → parse → save to Supabase posts table' :
                activeNav === 'library' ? 'Upload photos · get public URLs · use as inline images in posts' :
                activeNav === 'audit'   ? 'Verify title + first paragraph of all records' :
+               activeNav === 'create'  ? 'Fill in the fields below — no id sent, Supabase handles it' :
                `${visible.length} post${visible.length !== 1 ? 's' : ''} · ${publishedCount} published`}
-              {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
+              {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && activeNav !== 'create' && (
                 <span
                   className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
                   style={{
@@ -1319,7 +1582,7 @@ export default function Newsroom() {
           </div>
 
           {/* Stats pills */}
-          {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
+          {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && activeNav !== 'create' && (
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5"
                 style={{ borderColor: `${SIGNAL}30`, background: `${SIGNAL}08`, color: SIGNAL_DIM }}>
@@ -1334,19 +1597,14 @@ export default function Newsroom() {
             </div>
           )}
 
-          {/* Add post (stub) */}
-          {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
+          {/* New Post button — shown on list views only */}
+          {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && activeNav !== 'create' && (
             <button
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all active:scale-95"
               style={{ background: SIGNAL, boxShadow: `0 2px 10px ${SIGNAL}35` }}
               onMouseEnter={(e) => { e.currentTarget.style.background = SIGNAL_DIM; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = SIGNAL; }}
-              onClick={() => {
-                setPosts((prev) => [{
-                  id: Date.now(), title: 'New Post', date: new Date().toISOString().slice(0,10),
-                  industry: '', status: 'draft', image: null,
-                }, ...prev]);
-              }}
+              onClick={() => setActiveNav('create')}
             >
               <Plus className="w-3.5 h-3.5" />
               New Post
@@ -1357,6 +1615,17 @@ export default function Newsroom() {
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
+
+            {/* ── CREATE POST view ─────────────────────────────── */}
+            {activeNav === 'create' && (
+              <CreatePostForm
+                onSuccess={async () => {
+                  await loadPostsFromDb();
+                  setActiveNav('all');
+                }}
+                onCancel={() => setActiveNav('all')}
+              />
+            )}
 
             {/* ── IMAGE LIBRARY view ───────────────────────────── */}
             {activeNav === 'library' && (
@@ -1376,7 +1645,7 @@ export default function Newsroom() {
             )}
 
             {/* ── POST LIST view ───────────────────────────────── */}
-            {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
+            {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && activeNav !== 'create' && (
               <>
                 {/* Toolbar */}
                 <div className="flex items-center gap-3 mb-5">
