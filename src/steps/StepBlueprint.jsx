@@ -92,29 +92,29 @@ const FONT_KITS = [
     id: 'architect',
     name: 'The Architect',
     tagline: 'Geometric sans-serif — clean and modern',
-    display: 'DM Sans',
+    display: 'Montserrat',
     body: 'Inter',
   },
   {
     id: 'heritage',
     name: 'The Heritage',
-    tagline: 'Serif display — classic authority',
+    tagline: 'Serif display — timeless authority',
     display: 'Playfair Display',
-    body: 'Lora',
+    body: 'Inter',
   },
   {
     id: 'serenity',
     name: 'The Serenity',
-    tagline: 'Rounded sans — soft and welcoming',
-    display: 'Nunito',
-    body: 'Nunito',
+    tagline: 'Editorial serif — soft and refined',
+    display: 'Cormorant Garamond',
+    body: 'Montserrat',
   },
   {
     id: 'technical',
     name: 'The Technical',
-    tagline: 'Mono-influenced — precise and industrial',
-    display: 'Space Grotesk',
-    body: 'IBM Plex Sans',
+    tagline: 'Condensed sans + mono — bold and precise',
+    display: 'Oswald',
+    body: 'JetBrains Mono',
   },
 ];
 
@@ -316,9 +316,9 @@ export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }
   const handleFontKit      = (k)  => setData({ ...data, fontKit: k.id });
   const handleVibe         = (v)  => setData({ ...data, fontKit: v.id });  // vibe → fontKit
 
-  // Continue: client needs category; admin needs all three (vibe, palette, font)
+  // Continue: client needs category; admin needs all four (category, vibe, palette, font kit)
   const canContinue = isAdmin
-    ? !!selected && !!selectedPaletteId && !!selectedVibeId
+    ? !!selected && !!selectedVibeId && !!selectedPaletteId && !!selectedFontKitId
     : !!selected;
 
   return (
@@ -482,6 +482,29 @@ export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }
             )}
           </div>
 
+          {/* Font Kit selection */}
+          <div className="animate-fade-up delay-200 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Type className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
+              <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Font Kit
+              </p>
+              {!selectedFontKitId && (
+                <span className="ml-auto text-[10px] font-semibold" style={{ color: 'var(--coral)' }}>Required</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {FONT_KITS.map((k) => (
+                <FontKitCard
+                  key={k.id}
+                  kit={k}
+                  selected={selectedFontKitId === k.id}
+                  onSelect={handleFontKit}
+                />
+              ))}
+            </div>
+          </div>
+
         </>
       )}
 
@@ -523,7 +546,7 @@ export default function StepBlueprint({ onNext, onBack, data, setData, isAdmin }
           }
           onMouseEnter={(e) => { if (canContinue) e.currentTarget.style.background = 'var(--coral-light)'; }}
           onMouseLeave={(e) => { if (canContinue) e.currentTarget.style.background = 'var(--coral)'; }}
-          title={!selected ? 'Select a business category to continue' : isAdmin && !selectedVibeId ? 'Select a brand vibe to continue' : isAdmin && !selectedPaletteId ? 'Select a palette to continue' : undefined}
+          title={!selected ? 'Select a business category to continue' : isAdmin && !selectedVibeId ? 'Select a brand vibe to continue' : isAdmin && !selectedPaletteId ? 'Select a palette to continue' : isAdmin && !selectedFontKitId ? 'Select a font kit to continue' : undefined}
         >
           Continue <ChevronRight className="w-4 h-4" />
         </button>
