@@ -45,11 +45,12 @@ async function uploadAsset(blobUrl, filename, folder) {
  * Uploads all assets, then inserts/upserts into:
  *   businesses, staff, services_offered
  *
- * @param {object} data  The full React state data object from App.jsx
- * @param {function} onProgress  Called with a status string as work progresses
+ * @param {object}   data           The full React state data object from App.jsx
+ * @param {function} onProgress     Called with a status string as work progresses
+ * @param {boolean}  publishAction  If true (admin only), sets is_published: true on the record
  * @returns {{ bizId: string }}
  */
-export async function submitBrief(data, onProgress = () => {}) {
+export async function submitBrief(data, onProgress = () => {}, publishAction = false) {
   const bizId = data.bizId || `biz-${Date.now()}`;
 
   // ── 1. Upload brand assets ─────────────────────────────────────────────────
@@ -104,7 +105,8 @@ export async function submitBrief(data, onProgress = () => {}) {
         brand_colors:      data.brandColors    || null,
         custom_design:     data.customDesign   || null,
         business_hours:    data.businessHours  || null,
-        status:            'pending',
+        status:            publishAction ? 'published' : 'pending',
+        is_published:      publishAction,
       },
       { onConflict: 'biz_id' }
     );
@@ -127,8 +129,9 @@ export async function submitBrief(data, onProgress = () => {}) {
           instagram:      m.instagram         || null,
           contact_email:  m.contactEmail      || null,
           contact_phone:  m.contactPhone      || null,
-          booking_status: m.bookingStatus     || 'none',
-          booking_link:   m.bookingLink       || null,
+          booking_style:    m.bookingStyle      || 'digital',
+          booking_link:     m.bookingLink      || null,
+          portfolio_access: m.portfolioAccess  || false,
           photo_url:      m.uploadedPhotoUrl  || null,
         }))
       );
