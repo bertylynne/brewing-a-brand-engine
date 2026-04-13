@@ -10,6 +10,7 @@ import Step7Finalize    from './steps/Step5Finalize';
 import Newsroom         from './pages/Newsroom';
 import Resources        from './pages/Resources';
 import HomePage         from './pages/HomePage';
+import LoginGate        from './components/LoginGate';
 import { CheckCircle2, X } from 'lucide-react';
 import './index.css';
 
@@ -127,10 +128,10 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast,   setToast]   = useState(null); // { message, subtext }
 
-  // ── Page routing ───────────────────────────────────────────────────────────
-  if (page === 'home')       return <HomePage />;
-  if (page === 'newsroom')   return <Newsroom />;
-  if (page === 'resources')  return <Resources />;
+  // ── Page routing (all behind LoginGate) ────────────────────────────────────
+  if (page === 'home')       return <LoginGate><HomePage /></LoginGate>;
+  if (page === 'newsroom')   return <LoginGate><Newsroom /></LoginGate>;
+  if (page === 'resources')  return <LoginGate><Resources /></LoginGate>;
   // ?page=onboarding falls through to the step wizard below (no special return needed)
 
   const showToast = useCallback((message, subtext) => {
@@ -195,6 +196,7 @@ export default function App() {
   const stepProps = { onNext: goNext, onBack: goBack, data, setData, isAdmin };
 
   return (
+    <LoginGate>
     <div className="min-h-svh flex flex-col" style={{ background: 'var(--bg-base)' }}>
       {step > 1 && (
         <Stepper current={step} onNavigate={goToStep} />
@@ -242,5 +244,6 @@ export default function App() {
         />
       )}
     </div>
+    </LoginGate>
   );
 }
