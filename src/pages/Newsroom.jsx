@@ -5,7 +5,14 @@ import {
   Image as ImageIcon, Newspaper, Code2, Download, RefreshCw, Eye, EyeOff,
   Database, Copy, CheckCheck, Images, Loader2,
 } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+
+// Fresh anon client used exclusively by CreatePostForm to guarantee the
+// publishable/anon key is used for insert, bypassing any cached auth state.
+const _SUPA_URL  = 'https://bjxgqbgjtzbgzdprtepd.supabase.co';
+const _SUPA_ANON = 'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr';
+const anonClient = createClient(_SUPA_URL, _SUPA_ANON);
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const PARCHMENT  = '#F5F0E8';
@@ -839,13 +846,13 @@ function CreatePostForm({ onSuccess, onCancel }) {
   const [excerpt,     setExcerpt]     = useState('');
   const [date,        setDate]        = useState(today);
   const [industryTag, setIndustryTag] = useState('');
-  const [status,      setStatus]      = useState('Draft');
+  const [status,      setStatus]      = useState('Published');
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState(null);
 
   const resetForm = () => {
     setTitle(''); setContent(''); setExcerpt('');
-    setDate(today); setIndustryTag(''); setStatus('Draft');
+    setDate(today); setIndustryTag(''); setStatus('Published');
     setError(null);
   };
 
@@ -853,43 +860,44 @@ function CreatePostForm({ onSuccess, onCancel }) {
     e.preventDefault();
     if (!title.trim()) { setError('Title is required.'); return; }
 
-    // Validate date — must be YYYY-MM-DD
+    // ── Hard-validated ISO date ────────────────────────────────────────────────
     const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
       ? date
       : new Date().toISOString().slice(0, 10);
 
-    // Explicit payload — no id, no created_at, nothing else
+    // ── Exact 6-column payload — absolutely NO id field ───────────────────────
     const payload = {
       title:        title.trim(),
-      content:      content.trim()     || null,
-      excerpt:      excerpt.trim()     || null,
+      content:      content.trim()  || null,
+      excerpt:      excerpt.trim()  || null,
       date:         isoDate,
-      industry_tag: industryTag        || null,
-      status:       status,
+      industry_tag: industryTag     || null,
+      status:       status,          // 'Published' | 'Draft'
     };
 
-    console.log('[CreatePost] Inserting →', payload);
+    console.log('[CreatePost] payload (no id):', JSON.stringify(payload));
     setSaving(true);
     setError(null);
 
-    const { data, error: dbErr } = await supabase
+    // ── Use fresh anon client so RLS sees the correct anon role ───────────────
+    const { data, error: dbErr } = await anonClient
       .from('posts')
       .insert([payload])
       .select();
 
-    console.log('[CreatePost] Response → data:', data, '| error:', dbErr);
+    console.log('[CreatePost] response → data:', data, '| error:', dbErr);
 
     if (dbErr) {
-      console.error('[CreatePost] Insert failed:', dbErr.code, dbErr.message);
-      setError(`${dbErr.code ?? 'Error'}: ${dbErr.message}`);
+      console.error('[CreatePost] insert failed:', dbErr.code, dbErr.message, dbErr.details);
+      setError(`${dbErr.code ?? 'DB Error'}: ${dbErr.message}`);
       setSaving(false);
       return;
     }
 
-    console.log('[CreatePost] ✅ Created post id:', data?.[0]?.id);
+    console.log('[CreatePost] ✅ inserted id:', data?.[0]?.id);
     resetForm();
     setSaving(false);
-    await onSuccess(); // refresh list + navigate back
+    await onSuccess(data?.[0]); // pass new row → parent fires toast + refreshes
   };
 
   const published = status === 'Published';
@@ -1619,9 +1627,10 @@ export default function Newsroom() {
             {/* ── CREATE POST view ─────────────────────────────── */}
             {activeNav === 'create' && (
               <CreatePostForm
-                onSuccess={async () => {
+                onSuccess={async (newRow) => {
                   await loadPostsFromDb();
                   setActiveNav('all');
+                  fireToast('Order Received!', newRow?.title ? `"${newRow.title}" saved to the Gazette.` : 'Post saved to the Gazette.');
                 }}
                 onCancel={() => setActiveNav('all')}
               />
