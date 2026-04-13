@@ -7,6 +7,7 @@ import Step4Operations  from './steps/Step4Operations';
 import Step5Services    from './steps/Step4Services';
 import Step6Staff       from './steps/Step5Staff';
 import Step7Finalize    from './steps/Step5Finalize';
+import Newsroom         from './pages/Newsroom';
 import { CheckCircle2, X } from 'lucide-react';
 import './index.css';
 
@@ -113,12 +114,18 @@ function Toast({ message, subtext, onDismiss }) {
 
 // ── App ────────────────────────────────────────────────────────────────────────
 export default function App() {
+  // Check for ?page= param on mount — drives top-level page routing
+  const [page] = useState(() => new URLSearchParams(window.location.search).get('page'));
+
   const [step,    setStep]    = useState(1);
   const [data,    setData]    = useState(DEFAULT_DATA);
   // isAdmin lives in App state — persists across ALL step navigation for the session.
   // Only resets on full page reload. Unlocked once via POPS2026 on Step 1.
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast,   setToast]   = useState(null); // { message, subtext }
+
+  // ── Newsroom page ──────────────────────────────────────────────────────────
+  if (page === 'newsroom') return <Newsroom />;
 
   const showToast = useCallback((message, subtext) => {
     setToast({ message, subtext });
