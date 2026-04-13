@@ -9,6 +9,7 @@ import Step6Staff       from './steps/Step5Staff';
 import Step7Finalize    from './steps/Step5Finalize';
 import Newsroom         from './pages/Newsroom';
 import Resources        from './pages/Resources';
+import HomePage         from './pages/HomePage';
 import { CheckCircle2, X } from 'lucide-react';
 import './index.css';
 
@@ -116,7 +117,8 @@ function Toast({ message, subtext, onDismiss }) {
 // ── App ────────────────────────────────────────────────────────────────────────
 export default function App() {
   // Check for ?page= param on mount — drives top-level page routing
-  const [page] = useState(() => new URLSearchParams(window.location.search).get('page'));
+  // No param → show the command center homepage
+  const [page] = useState(() => new URLSearchParams(window.location.search).get('page') ?? 'home');
 
   const [step,    setStep]    = useState(1);
   const [data,    setData]    = useState(DEFAULT_DATA);
@@ -126,8 +128,10 @@ export default function App() {
   const [toast,   setToast]   = useState(null); // { message, subtext }
 
   // ── Page routing ───────────────────────────────────────────────────────────
+  if (page === 'home')       return <HomePage />;
   if (page === 'newsroom')   return <Newsroom />;
   if (page === 'resources')  return <Resources />;
+  // ?page=onboarding falls through to the step wizard below (no special return needed)
 
   const showToast = useCallback((message, subtext) => {
     setToast({ message, subtext });
