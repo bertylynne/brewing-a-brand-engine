@@ -11,7 +11,7 @@ const InstagramIcon = ({ className, style }) => (
   </svg>
 );
 
-let nextMemberId = 300;
+let nextMemberId = 306;
 
 const POSITION_PRESETS = {
   barbershop: ['Master Barber', 'Senior Barber', 'Barber', 'Apprentice Barber', 'Shop Manager'],
