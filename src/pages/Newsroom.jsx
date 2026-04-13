@@ -1210,11 +1210,11 @@ function DbAudit({ localPosts }) {
     setLoading(true);
     setError(null);
     try {
-      // Single target: lowercase 'posts' table only
+      // SELECT only — no insert, no update. Order by id (always exists).
       const { data, error: e } = await anonClient
         .from('posts')
         .select('*')
-        .order('date', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
       if (e) {
         setError(`posts table error: ${e.message}`);
@@ -1500,34 +1500,77 @@ export default function Newsroom() {
     }
   };
 
-  // Upload hero image → Storage → UPDATE featured_image column → show thumbnail
+  // Upload hero image → Storage → UPDATE featured_image → verify GET → show thumbnail
   const handleHeroUpload = async (postId, publicUrl) => {
-    // ① Guard: confirm we have a valid post ID before touching the DB
+    // ── Guard ─────────────────────────────────────────────────────────────────
     if (!postId) {
-      console.error('[Newsroom] handleHeroUpload called with no postId — aborting');
-      fireToast('Upload error', 'No post ID — cannot save image link.');
+      console.error('[Newsroom] handleHeroUpload: no postId — aborting');
+      fireToast('Upload error', 'No post ID found — cannot save image link.');
       return;
     }
-    console.log(`[Newsroom] handleHeroUpload → post id=${postId} | url=${publicUrl}`);
+    console.log(`[Newsroom] handleHeroUpload → UPDATE posts SET featured_image WHERE id=${postId}`);
 
-    // ② Optimistic UI — thumbnail appears immediately
+    // ── ① Optimistic thumbnail (shown immediately) ────────────────────────────
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: publicUrl } : p));
 
-    // ③ DB UPDATE — lowercase 'posts' table, existing row, featured_image column only
-    const { data: updateData, error: updateErr } = await anonClient
+    // ── ② DB UPDATE — no INSERT, targets existing row by id ──────────────────
+    const { data: updatedRows, error: updateErr } = await anonClient
       .from('posts')
       .update({ featured_image: publicUrl })
       .eq('id', postId)
       .select('id, featured_image');
 
     if (updateErr) {
-      console.error('[Newsroom] featured_image UPDATE failed:', JSON.stringify(updateErr));
-      fireToast('Upload saved — DB sync failed', `Error: ${updateErr.message}`);
-    } else {
-      console.log('[Newsroom] ✅ featured_image confirmed in DB:', updateData);
-      const post = posts.find(p => p.id === postId);
-      fireToast('Image Brewed!', post?.title ? `Hero set for "${post.title}"` : 'Featured image saved to database.');
+      // Hard DB error (connection, auth, etc.)
+      console.error('[Newsroom] UPDATE error:', JSON.stringify(updateErr));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
+      fireToast('DB write failed', `${updateErr.code ?? 'Error'}: ${updateErr.message}`);
+      return;
     }
+
+    // ── ③ Verify — Supabase can silently skip UPDATE rows if RLS filters them ──
+    // updatedRows will be [] if the row was not actually written
+    if (!updatedRows || updatedRows.length === 0) {
+      console.warn('[Newsroom] UPDATE returned 0 rows — running verification GET…');
+
+      // Fetch that specific row back to see its real featured_image value
+      const { data: verifyRow, error: verifyErr } = await anonClient
+        .from('posts')
+        .select('id, featured_image')
+        .eq('id', postId)
+        .single();
+
+      if (verifyErr) {
+        console.error('[Newsroom] Verify GET failed:', JSON.stringify(verifyErr));
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
+        fireToast('Could not verify save', `Verify error: ${verifyErr.message}`);
+        return;
+      }
+
+      if (verifyRow?.featured_image === publicUrl) {
+        // URL matches — write succeeded despite the empty return
+        console.log('[Newsroom] ✅ Verify confirmed — featured_image saved correctly');
+        const post = posts.find(p => p.id === postId);
+        fireToast('Image Brewed!', post?.title ? `Hero confirmed for "${post.title}"` : 'Featured image confirmed in database.');
+      } else {
+        // DB still has old value — the UPDATE was silently blocked
+        console.error('[Newsroom] Verify mismatch — DB value:', verifyRow?.featured_image, '| expected:', publicUrl);
+        // Keep the optimistic thumbnail but warn the user
+        setPosts(prev => prev.map(p =>
+          p.id === postId ? { ...p, featured_image: verifyRow?.featured_image || null } : p
+        ));
+        fireToast(
+          'Image not saved to DB',
+          'RLS may still be active on posts table — check Supabase Table Editor → RLS settings.'
+        );
+      }
+      return;
+    }
+
+    // ── ④ Normal success path — UPDATE returned the written row ──────────────
+    console.log('[Newsroom] ✅ featured_image persisted:', updatedRows[0]);
+    const post = posts.find(p => p.id === postId);
+    fireToast('Image Brewed!', post?.title ? `Hero set for "${post.title}"` : 'Featured image saved to database.');
   };
 
   // Called by ImportDock after a successful DB insert — refreshes the list
