@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import {
   ChevronRight, ChevronLeft, Upload, UserCircle,
   Trash2, Plus, Users, Link, Mail, Phone, ImageIcon, Briefcase, FileText,
+  ShieldCheck, AlertCircle, Globe, PhoneCall, Footprints,
 } from 'lucide-react';
 
 const InstagramIcon = ({ className, style }) => (
@@ -17,6 +18,29 @@ const POSITION_PRESETS = {
   salon:      ['Senior Stylist', 'Stylist', 'Colorist', 'Aesthetician', 'Nail Technician', 'Salon Manager'],
   default:    ['Owner', 'Manager', 'Senior Specialist', 'Specialist', 'Apprentice'],
 };
+
+const BIO_LIMIT = 250;
+
+const BOOKING_STYLE_OPTIONS = [
+  {
+    value: 'digital',
+    label: 'Digital',
+    sub: 'Show booking URL',
+    icon: Globe,
+  },
+  {
+    value: 'walkin',
+    label: 'Walk-in',
+    sub: 'Walk-ins only',
+    icon: Footprints,
+  },
+  {
+    value: 'hybrid',
+    label: 'Hybrid',
+    sub: 'Call to book',
+    icon: PhoneCall,
+  },
+];
 
 function TitleInput({ value, onChange, businessType }) {
   const [open, setOpen] = useState(false);
@@ -58,7 +82,7 @@ function TitleInput({ value, onChange, businessType }) {
   );
 }
 
-function MemberCard({ member, index, businessType, accent, onUpdate, onDelete }) {
+function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, isAdmin }) {
   const fileRef = useRef();
   const [dragging, setDragging] = useState(false);
 
@@ -68,6 +92,11 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
     onUpdate(member.id, 'photoName', file.name);
   };
 
+  const bookingStyle = member.bookingStyle || 'digital';
+  const bioLen       = (member.bio || '').length;
+  const bioOver      = bioLen > BIO_LIMIT;
+  const bioNear      = bioLen >= 220;
+
   return (
     <div
       className="rounded-2xl border overflow-hidden transition-all duration-200 animate-fade-up"
@@ -75,13 +104,28 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
     >
       {/* Card header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-sub)' }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ background: accent }}>
             {index + 1}
           </div>
           <span className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
             Team Member
           </span>
+          {/* Booking Style badge */}
+          {bookingStyle === 'walkin' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
+              style={{ borderColor: `${accent}40`, background: `${accent}10`, color: accent }}>
+              <Footprints className="w-2.5 h-2.5" />
+              Walk-ins Only
+            </span>
+          )}
+          {bookingStyle === 'hybrid' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
+              style={{ borderColor: 'rgba(99,179,237,0.4)', background: 'rgba(99,179,237,0.08)', color: '#63b3ed' }}>
+              <PhoneCall className="w-2.5 h-2.5" />
+              Call to Book
+            </span>
+          )}
         </div>
         <button
           onClick={() => onDelete(member.id)}
@@ -176,22 +220,21 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
             </div>
           </div>
 
-          {/* Booking link */}
+          {/* Booking Style — 3-way toggle */}
           <div>
-            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: 'var(--text-faint)' }}>Booking Link</label>
+            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: 'var(--text-faint)' }}>
+              Booking Style
+            </label>
             <div className="grid grid-cols-3 gap-1.5 mb-2.5">
-              {[
-                { value: 'none',   label: 'None',      sub: 'No booking needed'  },
-                { value: 'create', label: 'Build One',  sub: 'CBA will create it' },
-                { value: 'has',    label: 'I Have One', sub: 'Paste link below'   },
-              ].map((opt) => {
-                const isActive = (member.bookingStatus || 'none') === opt.value;
+              {BOOKING_STYLE_OPTIONS.map((opt) => {
+                const isActive = bookingStyle === opt.value;
+                const Icon = opt.icon;
                 return (
                   <button
                     key={opt.value} type="button"
                     onClick={() => {
-                      const patch = { bookingStatus: opt.value };
-                      if (opt.value !== 'has') patch.bookingLink = '';
+                      const patch = { bookingStyle: opt.value };
+                      if (opt.value !== 'digital') patch.bookingLink = '';
                       onUpdate(member.id, patch);
                     }}
                     className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl border transition-all duration-150 active:scale-[0.97]"
@@ -201,6 +244,7 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
                         : { borderColor: 'var(--border)', background: 'var(--bg-surface)', color: 'var(--text-muted)' }
                     }
                   >
+                    <Icon className="w-3.5 h-3.5 mb-0.5" />
                     <span className="text-xs font-semibold leading-tight">{opt.label}</span>
                     <span className="text-[9px] leading-tight text-center" style={{ color: isActive ? `${accent}99` : 'var(--text-faint)' }}>
                       {opt.sub}
@@ -210,28 +254,37 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
               })}
             </div>
 
-            {(member.bookingStatus || 'none') === 'create' && (
-              <div className="flex items-start gap-2.5 rounded-xl border px-3 py-2.5" style={{ borderColor: `${accent}25`, background: `${accent}08` }}>
-                <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `${accent}25` }}>
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
-                </div>
-                <p className="text-[11px] leading-relaxed" style={{ color: `${accent}cc` }}>
-                  Got it — CBA Solutions will build and configure a booking page for this team member as part of your website setup.
-                </p>
-              </div>
-            )}
-
-            {(member.bookingStatus || 'none') === 'has' && (
+            {/* Digital: URL input */}
+            {bookingStyle === 'digital' && (
               <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 focus-within:border-opacity-60 transition-colors border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
                 <Link className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
                 <input
-                  type="url" value={member.bookingLink}
+                  type="url" value={member.bookingLink || ''}
                   onChange={(e) => onUpdate(member.id, 'bookingLink', e.target.value)}
                   placeholder="https://booksy.com/..."
                   className="flex-1 bg-transparent text-sm outline-none min-w-0"
                   style={{ color: 'var(--text-primary)' }}
-                  autoFocus
                 />
+              </div>
+            )}
+
+            {/* Walk-in: info strip */}
+            {bookingStyle === 'walkin' && (
+              <div className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5" style={{ borderColor: `${accent}25`, background: `${accent}08` }}>
+                <Footprints className="w-4 h-4 flex-shrink-0" style={{ color: accent }} />
+                <p className="text-[11px] leading-relaxed" style={{ color: `${accent}cc` }}>
+                  Walk-ins only — no booking link will be shown on this member's profile.
+                </p>
+              </div>
+            )}
+
+            {/* Hybrid: info strip */}
+            {bookingStyle === 'hybrid' && (
+              <div className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5" style={{ borderColor: 'rgba(99,179,237,0.25)', background: 'rgba(99,179,237,0.06)' }}>
+                <PhoneCall className="w-4 h-4 flex-shrink-0" style={{ color: '#63b3ed' }} />
+                <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(99,179,237,0.85)' }}>
+                  Clients will be prompted to call to book — your business phone will be linked automatically.
+                </p>
               </div>
             )}
           </div>
@@ -243,25 +296,51 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
             <label className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-faint)' }}>
               Professional Bio
             </label>
-            <span className="text-[10px] font-mono tabular-nums"
-              style={{ color: (member.bio || '').length > 230 ? '#f87171' : 'var(--text-faint)' }}>
-              {(member.bio || '').length}<span style={{ color: 'var(--border)' }}>/250</span>
-            </span>
+            <div className="flex items-center gap-1.5">
+              {bioOver && <AlertCircle className="w-3 h-3 text-red-400" />}
+              <span className="text-[10px] font-mono tabular-nums transition-colors"
+                style={{ color: bioOver ? '#f87171' : bioNear ? 'var(--gold)' : 'var(--text-faint)' }}>
+                {bioLen}<span style={{ color: 'var(--border)' }}>/{BIO_LIMIT}</span>
+              </span>
+            </div>
           </div>
-          <div className="rounded-xl border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
+          <div
+            className="rounded-xl border transition-colors"
+            style={{
+              background: 'var(--bg-surface)',
+              borderColor: bioOver ? 'rgba(239,68,68,0.5)' : 'var(--border)',
+            }}
+          >
             <div className="flex items-start gap-2.5 p-3">
               <FileText className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
               <textarea
                 value={member.bio || ''}
                 onChange={(e) => onUpdate(member.id, 'bio', e.target.value)}
                 rows={3}
-                maxLength={270}
+                maxLength={BIO_LIMIT + 20}
                 placeholder={`e.g. "Marcus has 10 years of experience specialising in skin fades and classic cuts..."`}
                 className="flex-1 bg-transparent text-xs leading-relaxed resize-none outline-none"
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
+            {/* Progress bar */}
+            <div className="h-[2px] rounded-b-xl overflow-hidden" style={{ background: 'var(--bg-raised)' }}>
+              <div
+                className="h-full transition-all duration-300"
+                style={{
+                  width: `${Math.min((bioLen / BIO_LIMIT) * 100, 100)}%`,
+                  background: bioOver ? '#ef4444' : bioNear ? 'var(--gold)' : 'var(--border)',
+                }}
+              />
+            </div>
           </div>
+          {bioOver && (
+            <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1.5 animate-fade-up">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              {bioLen - BIO_LIMIT} character{bioLen - BIO_LIMIT !== 1 ? 's' : ''} over the limit
+              {isAdmin ? ' — admin bypass active.' : ' — trim to continue.'}
+            </p>
+          )}
         </div>
 
         {/* Instagram Handle */}
@@ -283,6 +362,35 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
             />
           </div>
         </div>
+
+        {/* Admin-Only: Portfolio Access toggle */}
+        {isAdmin && (
+          <div
+            className="rounded-xl border px-3.5 py-3 flex items-center justify-between gap-3"
+            style={{ borderColor: 'rgba(201,162,39,0.25)', background: 'rgba(201,162,39,0.04)' }}
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--gold)' }} />
+              <div>
+                <p className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>Portfolio Access</p>
+                <p className="text-[10px] leading-tight" style={{ color: 'var(--text-faint)' }}>
+                  Feature this member in the site portfolio
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onUpdate(member.id, 'portfolioAccess', !member.portfolioAccess)}
+              className="relative rounded-full transition-all duration-200 flex-shrink-0"
+              style={{ background: member.portfolioAccess ? 'var(--gold)' : 'var(--border)', width: '40px', height: '22px' }}
+            >
+              <span
+                className="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+                style={{ left: member.portfolioAccess ? '20px' : '3px' }}
+              />
+            </button>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="flex items-center gap-3">
@@ -321,7 +429,7 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete })
   );
 }
 
-export default function Step5Staff({ onNext, onBack, data, setData }) {
+export default function Step5Staff({ onNext, onBack, data, setData, isAdmin }) {
   const businessType = data.businessType || 'barbershop';
   const isBarber     = businessType === 'barbershop';
   const accent       = isBarber ? '#c9a227' : '#d4a0c8';
@@ -338,7 +446,16 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
 
   const toggleRole = (role) => setHiring({ ...hiring, roles: hiring.roles.includes(role) ? hiring.roles.filter((r) => r !== role) : [...hiring.roles, role] });
 
-  const addMember = () => setStaff([...staff, { id: nextMemberId++, name: '', title: '', photo: null, photoName: null, bookingStatus: 'none', bookingLink: '', bio: '', instagram: '', contactEmail: '', contactPhone: '' }]);
+  const addMember = () => setStaff([...staff, {
+    id: nextMemberId++,
+    name: '', title: '',
+    photo: null, photoName: null,
+    bookingStyle: 'digital', bookingLink: '',
+    bio: '', instagram: '',
+    contactEmail: '', contactPhone: '',
+    portfolioAccess: false,
+  }]);
+
   // Accept a single field+value OR a patch object so multiple fields can update atomically
   const updateMember = (id, fieldOrPatch, value) => {
     const patch = typeof fieldOrPatch === 'object' ? fieldOrPatch : { [fieldOrPatch]: value };
@@ -349,12 +466,15 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
   };
   const deleteMember = (id) => setStaff(staff.filter((m) => m.id !== id));
 
+  // Continue blocked if any member's bio exceeds limit AND user is not admin
+  const anyBioOver = !isAdmin && staff.some((m) => (m.bio || '').length > BIO_LIMIT);
+
   return (
     <div className="px-5 py-8 max-w-lg mx-auto w-full">
       {/* Header */}
       <div className="animate-fade-up mb-5">
         <p className="text-[11px] tracking-[0.2em] uppercase font-semibold mb-2" style={{ color: 'var(--coral)' }}>
-          — Step 05 —
+          — Step 06 —
         </p>
         <h2 className="font-serif-display text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Introduce Your Team
@@ -394,7 +514,16 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
       {staff.length > 0 && (
         <div className="flex flex-col gap-4 mb-4">
           {staff.map((member, i) => (
-            <MemberCard key={member.id} member={member} index={i} businessType={businessType} accent={accent} onUpdate={updateMember} onDelete={deleteMember} />
+            <MemberCard
+              key={member.id}
+              member={member}
+              index={i}
+              businessType={businessType}
+              accent={accent}
+              onUpdate={updateMember}
+              onDelete={deleteMember}
+              isAdmin={isAdmin}
+            />
           ))}
         </div>
       )}
@@ -501,10 +630,16 @@ export default function Step5Staff({ onNext, onBack, data, setData }) {
         </button>
         <button
           onClick={onNext}
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
-          style={{ background: 'var(--coral)', boxShadow: '0 4px 16px rgba(232,112,90,0.3)' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--coral-light)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--coral)'; }}
+          disabled={anyBioOver}
+          title={anyBioOver ? 'Trim team bio(s) to under 250 characters to continue' : undefined}
+          className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-95"
+          style={
+            anyBioOver
+              ? { background: 'var(--bg-raised)', color: 'var(--text-faint)', cursor: 'not-allowed' }
+              : { background: 'var(--coral)', boxShadow: '0 4px 16px rgba(232,112,90,0.3)' }
+          }
+          onMouseEnter={(e) => { if (!anyBioOver) e.currentTarget.style.background = 'var(--coral-light)'; }}
+          onMouseLeave={(e) => { if (!anyBioOver) e.currentTarget.style.background = 'var(--coral)'; }}
         >
           {staff.length === 0 ? 'Skip for Now' : 'Continue to Brief'}
           <ChevronRight className="w-4 h-4" />
