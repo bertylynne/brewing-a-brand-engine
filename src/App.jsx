@@ -53,13 +53,13 @@ const DEFAULT_DATA = {
   logoName:      null,
   tagline:       '',
   brandPhotos:   [],
-  socialLinks:   { facebook: '', instagram: '', others: [] }, // [{ id, label, url }]
-  paymentMethods: [],  // e.g. ['Visa','Cash','Apple Pay']
+  socialLinks:   { facebook: '', instagram: '', others: [] },
+  paymentMethods: [],
 
   // ── Design Preferences (Step 3)
   brandColors:   { primary: '#c9a227', secondary: '#152232', accent: '#e8705a' },
   customDesign:  { enabled: false, urls: ['', '', ''], vibeNotes: '' },
-  fontKit:       null,  // set by admin: 'architect' | 'heritage' | 'serenity' | 'technical'
+  fontKit:       null,  // 'architect' | 'heritage' | 'serenity' | 'technical'
 
   // ── Operations (Step 4)
   businessHours: DEFAULT_HOURS,
@@ -148,8 +148,10 @@ const DEFAULT_DATA = {
 };
 
 export default function App() {
-  const [step, setStep]     = useState(1);
-  const [data, setData]     = useState(DEFAULT_DATA);
+  const [step,    setStep]    = useState(1);
+  const [data,    setData]    = useState(DEFAULT_DATA);
+  // isAdmin is stored in state — survives all step navigation.
+  // Unlocked by POPS2026 on Step 1; only resets on full page reload.
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Read ?biz_id= from URL on mount — takes precedence over slug
@@ -160,15 +162,16 @@ export default function App() {
   }, []);
 
   // Memory wipe: whenever the vibe (fontKit) changes, immediately overwrite heroText
-  // so the Identity step always arrives pre-filled with the correct vibe copy.
   useEffect(() => {
     const copy = VIBE_COPY[data.fontKit];
     if (copy) setData((prev) => ({ ...prev, heroText: copy }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.fontKit]);
 
-  const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
-  const goBack = () => setStep((s) => Math.max(s - 1, 1));
+  const goNext     = ()    => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+  const goBack     = ()    => setStep((s) => Math.max(s - 1, 1));
+  // Jump to any completed step (1 → current-1), or forward to any step
+  const goToStep   = (n)   => setStep(n);
 
   // Called by DiscoveryPanel
   const handleDiscovery = (json) => {
@@ -192,15 +195,39 @@ export default function App() {
     }));
   };
 
+  // Called by ProjectLoader — merges loaded project data into state and advances to step 2
+  const handleProjectLoad = (projectData) => {
+    setData((prev) => ({
+      ...prev,
+      ...projectData,
+      // Preserve default hours if DB returned nothing
+      businessHours: projectData.businessHours || prev.businessHours,
+    }));
+    // Jump directly to the brief review step so admin can see everything at once
+    setStep(2);
+  };
+
   const stepProps = { onNext: goNext, onBack: goBack, data, setData, isAdmin };
 
   return (
     <div className="min-h-svh flex flex-col" style={{ background: 'var(--bg-base)' }}>
-      {step > 1 && <Stepper current={step} />}
+      {step > 1 && (
+        <Stepper
+          current={step}
+          onNavigate={goToStep}
+        />
+      )}
 
       <div className="flex-1 overflow-y-auto">
         <div key={step} className="animate-fade-up">
-          {step === 1 && <Step1Welcome    {...stepProps} onDiscovery={handleDiscovery} onAdminUnlock={() => setIsAdmin(true)} />}
+          {step === 1 && (
+            <Step1Welcome
+              {...stepProps}
+              onDiscovery={handleDiscovery}
+              onAdminUnlock={() => setIsAdmin(true)}
+              onProjectLoad={handleProjectLoad}
+            />
+          )}
           {step === 2 && <Step2Blueprint  {...stepProps} />}
           {step === 3 && <Step3Identity   {...stepProps} />}
           {step === 4 && <Step4Operations {...stepProps} />}

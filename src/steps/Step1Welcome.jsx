@@ -1,14 +1,16 @@
 import { useState, useRef } from 'react';
-import { Play, ChevronRight, CheckCircle2, Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Play, ChevronRight, CheckCircle2, Lock, ShieldCheck, Eye, EyeOff, FolderOpen, Loader2, AlertCircle } from 'lucide-react';
 import DiscoveryPanel from '../components/DiscoveryPanel';
+import { loadProject } from '../lib/loadProject';
 
 const MASTER_PASSWORD = 'POPS2026';
 
+// ── Master Mode gate ──────────────────────────────────────────────────────────
 function MasterModeGate({ isAdmin, onUnlock }) {
-  const [open, setOpen]       = useState(false);
-  const [pw, setPw]           = useState('');
-  const [showPw, setShowPw]   = useState(false);
-  const [shaking, setShaking] = useState(false);
+  const [open, setOpen]           = useState(false);
+  const [pw, setPw]               = useState('');
+  const [showPw, setShowPw]       = useState(false);
+  const [shaking, setShaking]     = useState(false);
   const [attempted, setAttempted] = useState(false);
   const inputRef = useRef();
 
@@ -27,14 +29,11 @@ function MasterModeGate({ isAdmin, onUnlock }) {
     }
   };
 
-  // Already unlocked — show persistent badge only
   if (isAdmin) {
     return (
       <div className="w-full max-w-md animate-fade-up">
-        <div
-          className="flex items-center justify-between px-4 py-3 rounded-xl border"
-          style={{ borderColor: 'rgba(201,162,39,0.4)', background: 'rgba(201,162,39,0.07)' }}
-        >
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl border"
+          style={{ borderColor: 'rgba(201,162,39,0.4)', background: 'rgba(201,162,39,0.07)' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(201,162,39,0.18)' }}>
               <ShieldCheck className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
@@ -56,7 +55,6 @@ function MasterModeGate({ isAdmin, onUnlock }) {
 
   return (
     <div className="w-full max-w-md animate-fade-up">
-      {/* Toggle button */}
       <button
         onClick={() => { setOpen((o) => !o); setAttempted(false); setPw(''); }}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all duration-200 text-left"
@@ -67,10 +65,8 @@ function MasterModeGate({ isAdmin, onUnlock }) {
         }
       >
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-            style={open ? { background: 'rgba(201,162,39,0.15)', color: 'var(--gold)' } : { background: 'var(--bg-surface)', color: 'var(--text-faint)' }}
-          >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+            style={open ? { background: 'rgba(201,162,39,0.15)', color: 'var(--gold)' } : { background: 'var(--bg-surface)', color: 'var(--text-faint)' }}>
             <Lock className="w-3.5 h-3.5" />
           </div>
           <div>
@@ -83,14 +79,12 @@ function MasterModeGate({ isAdmin, onUnlock }) {
         <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: open ? 'var(--gold)' : 'var(--border)' }} />
       </button>
 
-      {/* Password panel */}
       {open && (
         <div className="mt-2 rounded-xl border overflow-hidden animate-fade-up" style={{ borderColor: 'var(--border)', background: 'var(--bg-raised)' }}>
           <div className="px-4 pt-4 pb-4">
             <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
               Master Password
             </p>
-
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-all duration-200 ${shaking ? 'animate-shake' : ''}`}
@@ -110,25 +104,19 @@ function MasterModeGate({ isAdmin, onUnlock }) {
                   className="flex-1 bg-transparent text-sm outline-none font-mono tracking-widest"
                   style={{ color: 'var(--text-primary)' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  className="flex-shrink-0 transition-colors"
-                  style={{ color: 'var(--text-faint)' }}
+                <button type="button" onClick={() => setShowPw((s) => !s)}
+                  className="flex-shrink-0 transition-colors" style={{ color: 'var(--text-faint)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--gold)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}
-                >
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}>
                   {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
-
               {attempted && !shaking && (
                 <p className="text-[11px] text-red-400 flex items-center gap-1.5 animate-fade-up">
                   <Lock className="w-3 h-3 flex-shrink-0" />
                   Incorrect password — access denied.
                 </p>
               )}
-
               <button
                 type="submit"
                 disabled={!pw.trim()}
@@ -146,7 +134,128 @@ function MasterModeGate({ isAdmin, onUnlock }) {
   );
 }
 
-export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, data, isAdmin }) {
+// ── Project Loader ─────────────────────────────────────────────────────────────
+function ProjectLoader({ onLoad }) {
+  const [open, setOpen]       = useState(false);
+  const [bizId, setBizId]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState(null);
+  const [success, setSuccess] = useState(false);
+  const inputRef = useRef();
+
+  const handleLoad = async (e) => {
+    e.preventDefault();
+    if (!bizId.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const projectData = await loadProject(bizId);
+      setSuccess(true);
+      setTimeout(() => {
+        onLoad(projectData);
+        setOpen(false);
+        setSuccess(false);
+        setBizId('');
+      }, 700);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md animate-fade-up">
+      <button
+        onClick={() => { setOpen((o) => !o); setError(null); setBizId(''); }}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all duration-200 text-left"
+        style={
+          open
+            ? { borderColor: 'rgba(99,179,237,0.3)', background: 'rgba(99,179,237,0.06)' }
+            : { borderColor: 'var(--border)', background: 'var(--bg-raised)' }
+        }
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+            style={open ? { background: 'rgba(99,179,237,0.15)', color: '#63b3ed' } : { background: 'var(--bg-surface)', color: 'var(--text-faint)' }}>
+            <FolderOpen className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold transition-colors" style={{ color: open ? '#63b3ed' : 'var(--text-secondary)' }}>
+              Resume Existing Project
+            </p>
+            <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Enter a Business ID to reload saved data</p>
+          </div>
+        </div>
+        <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: open ? '#63b3ed' : 'var(--border)' }} />
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-xl border overflow-hidden animate-fade-up" style={{ borderColor: 'var(--border)', background: 'var(--bg-raised)' }}>
+          <div className="px-4 pt-4 pb-4">
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
+              Business ID
+            </p>
+            <form onSubmit={handleLoad} className="flex flex-col gap-3">
+              <div
+                className="flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-all duration-200"
+                style={{
+                  background: 'var(--bg-surface)',
+                  borderColor: error ? 'rgba(239,68,68,0.5)' : 'var(--border)',
+                }}
+              >
+                <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={bizId}
+                  onChange={(e) => { setBizId(e.target.value); setError(null); }}
+                  placeholder="e.g. pops-barbershop"
+                  autoFocus
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="flex-1 bg-transparent text-sm outline-none font-mono"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: 'var(--text-faint)' }} />}
+                {success && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#4ade80' }} />}
+              </div>
+
+              {error && (
+                <p className="text-[11px] text-red-400 flex items-start gap-1.5 animate-fade-up">
+                  <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={!bizId.trim() || loading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: bizId.trim() && !loading ? '#63b3ed' : 'var(--bg-surface)' }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Loading Project…
+                  </>
+                ) : (
+                  <>
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    Load Project
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Step 1 ───────────────────────────────────────────────────────────────
+export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, onProjectLoad, data, isAdmin }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-svh px-5 py-10 text-center relative overflow-hidden">
 
@@ -162,10 +271,8 @@ export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, data,
       {/* biz_id welcome banner */}
       {data?.bizId && (
         <div className="animate-fade-up mb-5 w-full max-w-md relative z-10">
-          <div
-            className="flex items-start gap-3 px-4 py-3.5 rounded-2xl border"
-            style={{ background: 'rgba(201,162,39,0.07)', borderColor: 'rgba(201,162,39,0.3)' }}
-          >
+          <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl border"
+            style={{ background: 'rgba(201,162,39,0.07)', borderColor: 'rgba(201,162,39,0.3)' }}>
             <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--gold)' }} />
             <div className="text-left">
               <p className="text-xs font-semibold leading-snug" style={{ color: 'var(--gold)' }}>
@@ -217,12 +324,9 @@ export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, data,
 
       {/* Video Placeholder */}
       <div className="animate-fade-up delay-300 w-full max-w-md mb-10">
-        <div
-          className="relative rounded-2xl overflow-hidden aspect-video shadow-2xl group border"
-          style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}
-        >
-          <div
-            className="absolute inset-0 opacity-[0.04]"
+        <div className="relative rounded-2xl overflow-hidden aspect-video shadow-2xl group border"
+          style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}>
+          <div className="absolute inset-0 opacity-[0.04]"
             style={{
               backgroundImage: 'linear-gradient(var(--gold) 1px, transparent 1px), linear-gradient(90deg, var(--gold) 1px, transparent 1px)',
               backgroundSize: '40px 40px',
@@ -233,10 +337,8 @@ export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, data,
           <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 rounded-bl" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
           <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 rounded-br" style={{ borderColor: 'rgba(201,162,39,0.45)' }} />
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <div
-              className="w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 animate-pulse-gold"
-              style={{ background: 'rgba(201,162,39,0.1)', borderColor: 'rgba(201,162,39,0.45)' }}
-            >
+            <div className="w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 animate-pulse-gold"
+              style={{ background: 'rgba(201,162,39,0.1)', borderColor: 'rgba(201,162,39,0.45)' }}>
               <Play className="w-6 h-6 ml-1" style={{ color: 'var(--gold)' }} fill="currentColor" />
             </div>
             <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--text-faint)' }}>Intro Video</span>
@@ -265,25 +367,28 @@ export default function Step1Welcome({ onNext, onDiscovery, onAdminUnlock, data,
 
       {/* Footer note */}
       <p className="animate-fade-up delay-500 text-xs mt-6 mb-8 tracking-wide" style={{ color: 'var(--text-faint)' }}>
-        8 steps · Under 10 minutes · Handled by our team
+        7 steps · Under 10 minutes · Handled by our team
       </p>
 
-      {/* ── Admin Zone ──────────────────────────────────────────── */}
+      {/* ── Admin & Loader Zone ──────────────────────────────────── */}
       <div className="w-full max-w-md flex flex-col gap-3 relative z-10">
 
         {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
           <span className="text-[9px] uppercase tracking-[0.2em] font-semibold" style={{ color: 'var(--text-faint)' }}>
-            Admin
+            Tools
           </span>
           <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
         </div>
 
-        {/* Password gate — always visible, unlocks isAdmin */}
+        {/* Project Loader — always visible */}
+        <ProjectLoader onLoad={onProjectLoad} />
+
+        {/* Master Mode gate */}
         <MasterModeGate isAdmin={isAdmin} onUnlock={onAdminUnlock} />
 
-        {/* Discovery Panel — only visible after unlock */}
+        {/* Discovery Panel — only after unlock */}
         {isAdmin && (
           <div className="animate-fade-up">
             <DiscoveryPanel onApply={onDiscovery} />
