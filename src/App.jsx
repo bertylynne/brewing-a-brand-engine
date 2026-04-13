@@ -8,6 +8,7 @@ import Step5Services    from './steps/Step4Services';
 import Step6Staff       from './steps/Step5Staff';
 import Step7Finalize    from './steps/Step5Finalize';
 import Newsroom         from './pages/Newsroom';
+import Resources        from './pages/Resources';
 import { CheckCircle2, X } from 'lucide-react';
 import './index.css';
 
@@ -124,8 +125,9 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast,   setToast]   = useState(null); // { message, subtext }
 
-  // ── Newsroom page ──────────────────────────────────────────────────────────
-  if (page === 'newsroom') return <Newsroom />;
+  // ── Page routing ───────────────────────────────────────────────────────────
+  if (page === 'newsroom')   return <Newsroom />;
+  if (page === 'resources')  return <Resources />;
 
   const showToast = useCallback((message, subtext) => {
     setToast({ message, subtext });
