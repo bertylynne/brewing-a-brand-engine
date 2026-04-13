@@ -1419,16 +1419,19 @@ function DbAudit({ localPosts }) {
 }
 
 // ── Normalise a DB posts row → local post shape ────────────────────────────────
+// Accepts any column shape so manually-added rows with nulls or missing fields
+// still render correctly. No field is required except id.
 function dbRowToPost(row) {
   return {
     id:             row.id,
-    title:          row.title          || 'Untitled',
-    date:           row.date           || row.created_at?.slice(0, 10) || '',
-    industry:       row.industry_tag   || '',
-    status:         row.status         || 'Draft',
-    content:        row.content        || null,
-    excerpt:        row.excerpt        || null,
-    featured_image: row.featured_image || null,
+    title:          row.title                          || row.name || 'Untitled',
+    date:           row.date                           || row.published_at?.slice(0, 10) || row.created_at?.slice(0, 10) || '',
+    industry:       row.industry_tag                   || row.industry || '',
+    // Accept any capitalisation of status; default to 'Published' so posts show
+    status:         row.status                         || 'Published',
+    content:        row.content                        || row.body || null,
+    excerpt:        row.excerpt                        || row.summary || null,
+    featured_image: row.featured_image                 || row.hero_image || row.image_url || null,
   };
 }
 
@@ -1452,17 +1455,21 @@ export default function Newsroom() {
   const loadPostsFromDb = async () => {
     setDbLoading(true);
     setDbError(null);
+
+    // SELECT * avoids silent failures from mismatched column names.
+    // Order by id (always present) — date may be null on manually-added rows.
+    // No status filter, no user_id filter — return every row.
     const { data, error } = await anonClient
       .from('posts')
-      .select('id, title, content, excerpt, date, industry_tag, status, featured_image, created_at')
-      .order('date', { ascending: false });
+      .select('*')
+      .order('id', { ascending: false });
 
     if (error) {
-      console.error('[Newsroom] loadPostsFromDb error:', error.message);
-      setDbError(error.message);
+      console.error('[Newsroom] loadPostsFromDb error:', JSON.stringify(error));
+      setDbError(`${error.code ? `[${error.code}] ` : ''}${error.message}`);
     } else {
       const mapped = (data || []).map(dbRowToPost);
-      console.log('[Newsroom] Loaded', mapped.length, 'posts. IDs:', mapped.map(p => p.id));
+      console.log('[Newsroom] Loaded', mapped.length, 'posts from `posts` table. IDs:', mapped.map(p => p.id));
       setPosts(mapped);
     }
     setDbLoading(false);
@@ -1822,16 +1829,45 @@ export default function Newsroom() {
                   </div>
                 ) : (
                   <div
-                    className="flex flex-col items-center gap-3 py-16 rounded-2xl border border-dashed"
+                    className="flex flex-col items-center gap-4 py-16 rounded-2xl border border-dashed"
                     style={{ borderColor: `${SIGNAL}20`, background: `${SIGNAL}04` }}
                   >
                     <FileText className="w-8 h-8" style={{ color: SLATE_FAINT }} />
                     <div className="text-center">
-                      <p className="text-sm font-semibold" style={{ color: SLATE2 }}>No posts found</p>
+                      <p className="text-sm font-semibold" style={{ color: SLATE2 }}>
+                        {search ? 'No posts match that search' : filterInd ? 'No posts for that industry' : 'No posts returned from database'}
+                      </p>
                       <p className="text-xs mt-1" style={{ color: SLATE_MUTED }}>
-                        {search ? 'Try a different search term' : 'Use the Import Dock to add posts'}
+                        {search
+                          ? 'Try a different search term'
+                          : filterInd
+                          ? 'Clear the industry filter to see all posts'
+                          : 'The query ran without error but returned 0 rows — check the table name and permissions in Supabase'}
                       </p>
                     </div>
+                    {/* Diagnostic readout — only shown when there's genuinely no data */}
+                    {!search && !filterInd && (
+                      <div
+                        className="rounded-xl border px-4 py-3 text-left max-w-sm w-full"
+                        style={{ borderColor: BORDER, background: WHITE }}
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: SLATE_FAINT }}>Diagnostics</p>
+                        <div className="flex flex-col gap-1 text-[11px] font-mono" style={{ color: SLATE_MUTED }}>
+                          <span>table: <span style={{ color: SLATE }}>posts</span></span>
+                          <span>query: <span style={{ color: SLATE }}>SELECT * ORDER BY id DESC</span></span>
+                          <span>rows in state: <span style={{ color: SLATE }}>{posts.length}</span></span>
+                          <span>db error: <span style={{ color: posts.length === 0 ? '#f59e0b' : '#4ade80' }}>{dbError || 'none'}</span></span>
+                        </div>
+                        <button
+                          onClick={loadPostsFromDb}
+                          className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                          style={{ background: `${SIGNAL}12`, color: SIGNAL_DIM, border: `1px solid ${SIGNAL}30` }}
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Retry fetch
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
