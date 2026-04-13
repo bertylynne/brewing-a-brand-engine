@@ -100,11 +100,12 @@ function IndustryDropdown({ value, onChange }) {
 
 // ── Status toggle ─────────────────────────────────────────────────────────────
 function StatusToggle({ value, onChange }) {
-  const published = value === 'published';
+  // DB stores 'Published'/'Draft' (capitalised); normalise for comparison
+  const published = value?.toLowerCase() === 'published';
   return (
     <button
       type="button"
-      onClick={() => onChange(published ? 'draft' : 'published')}
+      onClick={() => onChange(published ? 'Draft' : 'Published')}
       className="flex items-center gap-2 transition-all select-none"
       title={published ? 'Click to unpublish' : 'Click to publish'}
     >
@@ -1183,8 +1184,24 @@ export default function Newsroom() {
     loadPostsFromDb();
   }, []);
 
-  const updatePost = (id, field, value) => {
+  // Update post locally and persist to Supabase
+  // 'field' is the local key (industry / status); we map to DB column names
+  const updatePost = async (id, field, value) => {
+    // Optimistic local update immediately
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
+
+    // Map local field names → DB column names
+    const dbField = field === 'industry' ? 'industry_tag' : field; // 'status' stays as 'status'
+    const { error } = await supabase
+      .from('posts')
+      .update({ [dbField]: value })
+      .eq('id', id);
+
+    if (error) {
+      console.error(`[Newsroom] updatePost failed for field "${field}":`, error.message);
+      // Revert on failure by reloading from DB
+      loadPostsFromDb();
+    }
   };
 
   // Upload hero image → Storage → update featured_image in DB → update local state

@@ -2,18 +2,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 
-// ── Industry tag colours ───────────────────────────────────────────────────────
+// ── Industry tag colours — keyed lowercase to match DB values ─────────────────
 const INDUSTRY_META = {
-  Digital:      { dot: '#63b3ed', bg: 'rgba(99,179,237,0.10)',  border: 'rgba(99,179,237,0.30)'  },
-  Wellness:     { dot: '#8FAF6A', bg: 'rgba(143,175,106,0.10)', border: 'rgba(143,175,106,0.30)' },
-  Barber:       { dot: '#C5A059', bg: 'rgba(197,160,89,0.10)',  border: 'rgba(197,160,89,0.30)'  },
-  Nonprofit:    { dot: '#A78BFA', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.30)' },
-  Hospitality:  { dot: '#64CCF1', bg: 'rgba(100,204,241,0.10)', border: 'rgba(100,204,241,0.30)' },
-  Construction: { dot: '#E8705A', bg: 'rgba(232,112,90,0.10)',  border: 'rgba(232,112,90,0.30)'  },
+  digital:      { label: 'Digital',      dot: '#63b3ed', bg: 'rgba(99,179,237,0.10)',  border: 'rgba(99,179,237,0.30)'  },
+  wellness:     { label: 'Wellness',     dot: '#8FAF6A', bg: 'rgba(143,175,106,0.10)', border: 'rgba(143,175,106,0.30)' },
+  barber:       { label: 'Barber',       dot: '#C5A059', bg: 'rgba(197,160,89,0.10)',  border: 'rgba(197,160,89,0.30)'  },
+  nonprofit:    { label: 'Nonprofit',    dot: '#A78BFA', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.30)' },
+  hospitality:  { label: 'Hospitality', dot: '#64CCF1', bg: 'rgba(100,204,241,0.10)', border: 'rgba(100,204,241,0.30)' },
+  construction: { label: 'Construction',dot: '#E8705A', bg: 'rgba(232,112,90,0.10)',  border: 'rgba(232,112,90,0.30)'  },
 };
 
+// Normalise to lowercase for lookup — handles 'Barber', 'barber', 'BARBER' alike
 const getIndustryMeta = (tag) =>
-  INDUSTRY_META[tag] || { dot: '#94a3b8', bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.30)' };
+  INDUSTRY_META[(tag || '').toLowerCase()] || { label: tag, dot: '#94a3b8', bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.30)' };
 
 // ── IndustryTag pill ──────────────────────────────────────────────────────────
 function IndustryTag({ label }) {
@@ -24,7 +25,7 @@ function IndustryTag({ label }) {
       style={{ background: meta.bg, border: `1px solid ${meta.border}`, color: meta.dot }}
     >
       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: meta.dot }} />
-      {label}
+      {meta.label || label}
     </span>
   );
 }
