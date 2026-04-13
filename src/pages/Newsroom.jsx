@@ -34,36 +34,7 @@ const INDUSTRIES = [
 
 const getIndustry = (id) => INDUSTRIES.find((i) => i.id === id) || null;
 
-// ── Seed data: 24 posts ───────────────────────────────────────────────────────
-let _uid = 100;
-const uid = () => _uid++;
-
-const SEED_POSTS = [
-  { id:uid(), title:'5 Ways Premium Websites Drive Barbershop Bookings',         date:'2025-11-14', industry:'barber',       status:'published', image:null },
-  { id:uid(), title:'From Clippers to Clicks: A Barber\'s Digital Playbook',    date:'2025-11-07', industry:'barber',       status:'published', image:null },
-  { id:uid(), title:'The Wellness Brand Blueprint: Building Trust Online',       date:'2025-10-30', industry:'wellness',     status:'published', image:null },
-  { id:uid(), title:'Why Spas Need SEO-First Web Design in 2025',                date:'2025-10-22', industry:'wellness',     status:'draft',     image:null },
-  { id:uid(), title:'Constructing Your Online Presence: A Contractor\'s Guide',  date:'2025-10-15', industry:'construction', status:'published', image:null },
-  { id:uid(), title:'Case Study: Renovating a Trades Company Website',           date:'2025-10-08', industry:'construction', status:'published', image:null },
-  { id:uid(), title:'Hospitality in the Age of Google: What Hotels Must Know',   date:'2025-09-29', industry:'hospitality',  status:'published', image:null },
-  { id:uid(), title:'Restaurant Websites That Actually Convert Tables',          date:'2025-09-21', industry:'hospitality',  status:'draft',     image:null },
-  { id:uid(), title:'Digital Transformation for Nonprofits on a Budget',        date:'2025-09-14', industry:'nonprofit',    status:'published', image:null },
-  { id:uid(), title:'Building Donor Trust Through Web Design',                  date:'2025-09-07', industry:'nonprofit',    status:'published', image:null },
-  { id:uid(), title:'The SaaS Landing Page Formula That Converts',              date:'2025-08-28', industry:'digital',      status:'published', image:null },
-  { id:uid(), title:'UX Lessons from 100 Agency Builds',                       date:'2025-08-20', industry:'digital',      status:'published', image:null },
-  { id:uid(), title:'The Fade That Went Viral: Social Media for Barbers',       date:'2025-08-12', industry:'barber',       status:'draft',     image:null },
-  { id:uid(), title:'Colour Psychology in Barbershop Branding',                 date:'2025-08-04', industry:'barber',       status:'published', image:null },
-  { id:uid(), title:'Nutrition Brand Websites: What Works in 2025',             date:'2025-07-28', industry:'wellness',     status:'published', image:null },
-  { id:uid(), title:'Mindfulness Studios and the Minimal Web Aesthetic',        date:'2025-07-20', industry:'wellness',     status:'draft',     image:null },
-  { id:uid(), title:'Commercial Landscaping: Winning Bids With a Better Site',  date:'2025-07-13', industry:'construction', status:'published', image:null },
-  { id:uid(), title:'Signage Companies and the Power of Visual Web Design',     date:'2025-07-05', industry:'construction', status:'draft',     image:null },
-  { id:uid(), title:'Boutique Hotels vs. AirBnB: The Website Edge',             date:'2025-06-27', industry:'hospitality',  status:'published', image:null },
-  { id:uid(), title:'Event Catering: How Your Website Books the Room',          date:'2025-06-19', industry:'hospitality',  status:'published', image:null },
-  { id:uid(), title:'Grant-Ready: How Web Presence Wins Funding',               date:'2025-06-11', industry:'nonprofit',    status:'draft',     image:null },
-  { id:uid(), title:'Community Orgs and Volunteer Recruitment Web Tactics',     date:'2025-06-03', industry:'nonprofit',    status:'published', image:null },
-  { id:uid(), title:'API-First Design: Why Your Stack Matters for Growth',      date:'2025-05-26', industry:'digital',      status:'published', image:null },
-  { id:uid(), title:'The No-Code vs. Custom Build Debate — Settled',            date:'2025-05-18', industry:'digital',      status:'draft',     image:null },
-];
+// No seed data — all posts come exclusively from Supabase
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
@@ -1175,8 +1146,9 @@ function dbRowToPost(row) {
 
 // ── Main Newsroom ─────────────────────────────────────────────────────────────
 export default function Newsroom() {
-  const [posts,      setPosts]      = useState(SEED_POSTS);
-  const [dbLoaded,   setDbLoaded]   = useState(false);
+  const [posts,      setPosts]      = useState([]);
+  const [dbLoading,  setDbLoading]  = useState(true);
+  const [dbError,    setDbError]    = useState(null);
   const [activeNav,  setActiveNav]  = useState('all');
   const [search,     setSearch]     = useState('');
   const [filterInd,  setFilterInd]  = useState('');
@@ -1188,20 +1160,25 @@ export default function Newsroom() {
   const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
   const clearToast = useCallback(() => setToast(null), []);
 
-  // Fetch all posts from Supabase and replace local state
+  // Fetch all posts from Supabase — this is the single source of truth
   const loadPostsFromDb = async () => {
+    setDbLoading(true);
+    setDbError(null);
     const { data, error } = await supabase
       .from('posts')
       .select('id, title, content, excerpt, date, industry_tag, status, featured_image, created_at')
       .order('date', { ascending: false });
 
-    if (!error && data) {
-      setPosts(data.map(dbRowToPost));
-      setDbLoaded(true);
+    if (error) {
+      console.error('[Newsroom] loadPostsFromDb error:', error.message);
+      setDbError(error.message);
+    } else {
+      setPosts((data || []).map(dbRowToPost));
     }
+    setDbLoading(false);
   };
 
-  // On mount: try to load real data; fall back to seed if empty/error
+  // On mount: load all posts from DB
   useEffect(() => {
     loadPostsFromDb();
   }, []);
@@ -1303,12 +1280,12 @@ export default function Newsroom() {
                 <span
                   className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
                   style={{
-                    background: dbLoaded ? `${SIGNAL}15` : PARCHMENT2,
-                    color:      dbLoaded ? SIGNAL_DIM    : SLATE_FAINT,
-                    border:     `1px solid ${dbLoaded ? `${SIGNAL}30` : BORDER}`,
+                    background: dbLoading ? PARCHMENT2 : dbError ? 'rgba(239,68,68,0.1)' : `${SIGNAL}15`,
+                    color:      dbLoading ? SLATE_FAINT : dbError ? '#dc2626'             : SIGNAL_DIM,
+                    border:     `1px solid ${dbLoading ? BORDER : dbError ? 'rgba(239,68,68,0.3)' : `${SIGNAL}30`}`,
                   }}
                 >
-                  {dbLoaded ? 'Live DB' : 'Seed data'}
+                  {dbLoading ? 'Loading…' : dbError ? 'DB Error' : 'Live DB'}
                 </span>
               )}
             </p>
@@ -1473,7 +1450,46 @@ export default function Newsroom() {
                 </div>
 
                 {/* Post rows */}
-                {visible.length > 0 ? (
+                {dbLoading ? (
+                  /* Loading skeleton */
+                  <div className="flex flex-col gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-4 px-5 py-3 rounded-xl border animate-pulse"
+                        style={{ background: WHITE, borderColor: BORDER, height: '66px' }}
+                      >
+                        <div className="rounded-lg flex-shrink-0" style={{ width: '64px', height: '44px', background: PARCHMENT2 }} />
+                        <div className="flex-1 flex flex-col gap-2">
+                          <div className="rounded" style={{ height: '12px', width: '55%', background: PARCHMENT2 }} />
+                          <div className="rounded" style={{ height: '10px', width: '30%', background: PARCHMENT2 }} />
+                        </div>
+                        <div className="rounded-lg flex-shrink-0" style={{ width: '100px', height: '28px', background: PARCHMENT2 }} />
+                        <div className="rounded-full flex-shrink-0" style={{ width: '80px', height: '20px', background: PARCHMENT2 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : dbError ? (
+                  /* DB error state */
+                  <div
+                    className="rounded-xl px-5 py-5 flex items-start gap-3"
+                    style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)' }}
+                  >
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold" style={{ color: '#dc2626' }}>Could not load posts from database</p>
+                      <p className="text-xs mt-1 font-mono" style={{ color: '#b45309' }}>{dbError}</p>
+                      <button
+                        onClick={loadPostsFromDb}
+                        className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : visible.length > 0 ? (
                   <div className="flex flex-col gap-2">
                     {visible.map((post) => (
                       <PostRow key={post.id} post={post} onUpdate={updatePost} onHeroUpload={handleHeroUpload} />
@@ -1488,7 +1504,7 @@ export default function Newsroom() {
                     <div className="text-center">
                       <p className="text-sm font-semibold" style={{ color: SLATE2 }}>No posts found</p>
                       <p className="text-xs mt-1" style={{ color: SLATE_MUTED }}>
-                        {search ? 'Try a different search term' : 'Use the Import Dock or create a new post'}
+                        {search ? 'Try a different search term' : 'Use the Import Dock to add posts'}
                       </p>
                     </div>
                   </div>
