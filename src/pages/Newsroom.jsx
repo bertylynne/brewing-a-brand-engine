@@ -629,7 +629,7 @@ function ImageLibrary() {
   const loadAssets = useCallback(async () => {
     setLoading(true);
     setFetchErr(null);
-    const { data, error } = await supabase.storage
+    const { data, error } = await anonClient.storage
       .from(BUCKET)
       .list('library', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
 
@@ -640,7 +640,7 @@ function ImageLibrary() {
       const mapped = (data || [])
         .filter(f => f.name !== '.emptyFolderPlaceholder')
         .map(f => {
-          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(`library/${f.name}`);
+          const { data: urlData } = anonClient.storage.from(BUCKET).getPublicUrl(`library/${f.name}`);
           return { id: f.id || f.name, name: f.name, remoteUrl: urlData.publicUrl, uploading: false, error: null };
         });
       setAssets(mapped);
