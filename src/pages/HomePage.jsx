@@ -1,12 +1,10 @@
-// ── Homepage Command Center ────────────────────────────────────────────────────
-import { Newspaper, Users, BarChart2, ArrowRight, Coffee } from 'lucide-react';
+// ── Homepage Dashboard ─────────────────────────────────────────────────────────
+import { Newspaper, Users, ArrowRight, Coffee } from 'lucide-react';
 
 const SLATE      = '#2C3E50';
-const SLATE2     = '#3D5166';
 const SLATE_MUTED= '#7A8FA6';
 const SLATE_FAINT= '#B0BEC9';
 const PARCHMENT  = '#F5F0E8';
-const PARCHMENT2 = '#EDE8DC';
 const SIGNAL     = '#64CCF1';
 const SIGNAL_DIM = '#3DBDE8';
 const BRASS      = '#C5A059';
@@ -16,173 +14,122 @@ const BORDER     = 'rgba(44,62,80,0.10)';
 
 const CARDS = [
   {
-    id:       'newsroom',
-    href:     '?page=newsroom',
-    icon:     Newspaper,
-    iconBg:   `${SIGNAL}15`,
+    id:        'newsroom',
+    href:      '?page=newsroom',
+    icon:      Newspaper,
+    iconBg:    `${SIGNAL}15`,
     iconColor: SIGNAL,
-    accentBar: SIGNAL,
-    label:    'Newsroom & Content',
-    desc:     'Manage blog posts, import articles, upload hero images, and publish to the Resources feed.',
-    cta:      'Open Newsroom',
-    ctaBg:    SIGNAL,
-    ctaShadow:`0 4px 14px ${SIGNAL}40`,
-    ctaHover: SIGNAL_DIM,
-    badge:    null,
-    disabled: false,
+    accent:    SIGNAL,
+    accentDim: SIGNAL_DIM,
+    label:     'Manage The Gazette',
+    desc:      'Write, import, and publish posts. Manage hero images and keep the content library current.',
   },
   {
-    id:       'onboarding',
-    href:     '?page=onboarding',
-    icon:     Users,
-    iconBg:   `${BRASS}18`,
+    id:        'onboarding',
+    href:      '?page=onboarding',
+    icon:      Users,
+    iconBg:    `${BRASS}18`,
     iconColor: BRASS,
-    accentBar: BRASS,
-    label:    'Brand Onboarding',
-    desc:     'Walk through the full brand brief — identity, services, team, and finalize for handoff.',
-    cta:      'Open Onboarding',
-    ctaBg:    BRASS,
-    ctaShadow:`0 4px 14px ${BRASS}40`,
-    ctaHover: BRASS_DIM,
-    badge:    null,
-    disabled: false,
-  },
-  {
-    id:       'analytics',
-    href:     null,
-    icon:     BarChart2,
-    iconBg:   'rgba(167,139,250,0.12)',
-    iconColor: '#A78BFA',
-    accentBar: '#A78BFA',
-    label:    'Analytics',
-    desc:     'Traffic insights, post performance, and lead tracking. Dashboard coming soon.',
-    cta:      'Coming Soon',
-    ctaBg:    PARCHMENT2,
-    ctaShadow:'none',
-    ctaHover: null,
-    badge:    'Soon',
-    disabled: true,
+    accent:    BRASS,
+    accentDim: BRASS_DIM,
+    label:     'Brand Discovery',
+    desc:      'Run the full brand brief — identity, services, team roster, and final handoff package.',
   },
 ];
 
 export default function HomePage() {
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen flex flex-col"
       style={{ background: PARCHMENT, fontFamily: "'Inter', sans-serif" }}
     >
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header style={{ background: SLATE }}>
-        <div className="max-w-5xl mx-auto px-8 py-14">
-          {/* Brand mark */}
-          <div className="flex items-center gap-3 mb-8">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: `${SIGNAL}18` }}
-            >
-              <Coffee className="w-5 h-5" style={{ color: SIGNAL }} />
-            </div>
-            <span
-              className="text-[10px] font-bold uppercase tracking-[0.25em]"
-              style={{ color: SIGNAL }}
-            >
-              CBA Solutions · Command Center
-            </span>
-          </div>
+      {/* ── Slim top bar ───────────────────────────────────────────────────── */}
+      <div
+        className="flex items-center gap-2.5 px-8 py-4 border-b"
+        style={{ background: WHITE, borderColor: BORDER }}
+      >
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${SIGNAL}15` }}
+        >
+          <Coffee className="w-4 h-4" style={{ color: SIGNAL }} />
+        </div>
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.22em]"
+          style={{ color: SIGNAL }}
+        >
+          CBA Solutions
+        </span>
+      </div>
 
-          {/* Greeting */}
+      {/* ── Centred body ───────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+
+        {/* Header */}
+        <div className="text-center mb-14 max-w-lg">
           <p
-            className="text-sm font-semibold mb-1"
-            style={{ color: SLATE_MUTED }}
+            className="text-[10px] font-bold uppercase tracking-[0.28em] mb-4"
+            style={{ color: SLATE_FAINT }}
           >
-            {greeting},
+            Command Center
           </p>
           <h1
-            className="text-4xl font-black tracking-tight leading-none mb-4"
-            style={{ color: PARCHMENT, fontFamily: "'Montserrat', sans-serif" }}
+            className="text-3xl font-black tracking-tight leading-tight mb-3"
+            style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}
           >
-            Welcome back, Pops.
+            Welcome back.
           </h1>
           <p
-            className="text-sm max-w-lg leading-relaxed"
+            className="text-base font-medium"
             style={{ color: SLATE_MUTED }}
           >
-            Your brand‑building tools are ready. Pick up where you left off.
+            What are we brewing today?
           </p>
         </div>
-      </header>
 
-      {/* ── Cards ───────────────────────────────────────────────────────────── */}
-      <main className="max-w-5xl mx-auto px-8 py-14">
-        <p
-          className="text-[10px] font-bold uppercase tracking-[0.22em] mb-8"
-          style={{ color: SLATE_FAINT }}
-        >
-          Tools
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Two cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-2xl">
           {CARDS.map((card) => {
             const Icon = card.icon;
             return (
-              <div
+              <a
                 key={card.id}
-                className="rounded-2xl border flex flex-col overflow-hidden transition-all duration-200"
+                href={card.href}
+                className="group flex flex-col rounded-2xl border overflow-hidden transition-all duration-200 active:scale-[0.98]"
                 style={{
-                  background:   WHITE,
-                  borderColor:  BORDER,
-                  boxShadow:    '0 2px 8px rgba(44,62,80,0.06)',
-                  opacity:      card.disabled ? 0.7 : 1,
+                  background:     WHITE,
+                  borderColor:    BORDER,
+                  boxShadow:      '0 2px 10px rgba(44,62,80,0.07)',
+                  textDecoration: 'none',
                 }}
                 onMouseEnter={(e) => {
-                  if (!card.disabled) {
-                    e.currentTarget.style.boxShadow = '0 8px 28px rgba(44,62,80,0.13)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }
+                  e.currentTarget.style.boxShadow    = '0 12px 36px rgba(44,62,80,0.14)';
+                  e.currentTarget.style.transform    = 'translateY(-3px)';
+                  e.currentTarget.style.borderColor  = `${card.accent}40`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(44,62,80,0.06)';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow   = '0 2px 10px rgba(44,62,80,0.07)';
+                  e.currentTarget.style.transform   = 'translateY(0)';
+                  e.currentTarget.style.borderColor = BORDER;
                 }}
               >
                 {/* Accent bar */}
-                <div
-                  className="h-1 w-full flex-shrink-0"
-                  style={{ background: card.accentBar }}
-                />
+                <div className="h-1 w-full flex-shrink-0" style={{ background: card.accent }} />
 
-                {/* Body */}
-                <div className="flex flex-col flex-1 p-6 gap-5">
-                  {/* Icon + badge */}
-                  <div className="flex items-start justify-between">
-                    <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center"
-                      style={{ background: card.iconBg }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color: card.iconColor }} />
-                    </div>
-                    {card.badge && (
-                      <span
-                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                        style={{
-                          background: 'rgba(167,139,250,0.12)',
-                          color:      '#A78BFA',
-                          border:     '1px solid rgba(167,139,250,0.25)',
-                        }}
-                      >
-                        {card.badge}
-                      </span>
-                    )}
+                {/* Card body */}
+                <div className="flex flex-col gap-5 p-7">
+                  {/* Icon */}
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style={{ background: card.iconBg }}
+                  >
+                    <Icon className="w-6 h-6" style={{ color: card.iconColor }} />
                   </div>
 
                   {/* Text */}
-                  <div className="flex flex-col gap-2 flex-1">
+                  <div className="flex flex-col gap-2">
                     <h2
-                      className="text-base font-black leading-tight"
+                      className="text-lg font-black leading-tight"
                       style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}
                     >
                       {card.label}
@@ -195,81 +142,30 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  {/* CTA */}
-                  {card.disabled ? (
-                    <div
-                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider"
-                      style={{
-                        background:  PARCHMENT2,
-                        color:       SLATE_FAINT,
-                        border:      `1px solid ${BORDER}`,
-                      }}
-                    >
-                      {card.cta}
-                    </div>
-                  ) : (
-                    <a
-                      href={card.href}
-                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all duration-150 active:scale-[0.98]"
-                      style={{
-                        background: card.ctaBg,
-                        boxShadow:  card.ctaShadow,
-                        textDecoration: 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = card.ctaHover;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = card.ctaBg;
-                      }}
-                    >
-                      {card.cta}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                  {/* CTA row */}
+                  <div
+                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mt-1 transition-all duration-150"
+                    style={{ color: card.accent }}
+                  >
+                    Go
+                    <ArrowRight
+                      className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-1"
+                    />
+                  </div>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
-
-        {/* ── Quick links ─────────────────────────────────────────────────── */}
-        <div
-          className="mt-10 pt-8 border-t flex items-center gap-6 flex-wrap"
-          style={{ borderColor: 'rgba(44,62,80,0.08)' }}
-        >
-          <span
-            className="text-[10px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: SLATE_FAINT }}
-          >
-            Quick links
-          </span>
-          {[
-            { label: 'Resources Feed',   href: '?page=resources' },
-            { label: 'Start Onboarding', href: '?page=onboarding' },
-          ].map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="flex items-center gap-1.5 text-xs font-semibold transition-colors"
-              style={{ color: SLATE2, textDecoration: 'none' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = SIGNAL_DIM; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = SLATE2; }}
-            >
-              {link.label}
-              <ArrowRight className="w-3 h-3" />
-            </a>
-          ))}
-        </div>
       </main>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer
-        className="border-t py-6"
-        style={{ borderColor: 'rgba(44,62,80,0.08)' }}
+        className="py-5 border-t text-center"
+        style={{ borderColor: 'rgba(44,62,80,0.07)' }}
       >
         <p
-          className="text-center text-[10px] uppercase tracking-widest font-medium"
+          className="text-[10px] uppercase tracking-widest font-medium"
           style={{ color: SLATE_FAINT }}
         >
           CBA Solutions · Internal Portal
