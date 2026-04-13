@@ -168,24 +168,59 @@ async function uploadToStorage(file, folder = 'posts') {
   return data.publicUrl;
 }
 
+// ── Newsroom toast ────────────────────────────────────────────────────────────
+function NewsroomToast({ message, sub, onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+  return (
+    <div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl"
+      style={{
+        background: SLATE,
+        border: `1px solid ${BRASS}50`,
+        boxShadow: `0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px ${BRASS}20`,
+        minWidth: '260px',
+      }}
+    >
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ background: `${BRASS}20` }}
+      >
+        <span style={{ fontSize: '16px' }}>☕</span>
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-black" style={{ color: BRASS, fontFamily: "'Montserrat', sans-serif" }}>
+          {message}
+        </p>
+        {sub && <p className="text-[10px] mt-0.5" style={{ color: SLATE_FAINT }}>{sub}</p>}
+      </div>
+      <button onClick={onDismiss} style={{ color: SLATE_FAINT }}>
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ── Hero image cell ───────────────────────────────────────────────────────────
 function HeroCell({ post, onHeroUpload }) {
-  const fileRef        = useRef();
-  const [busy,  setBusy]  = useState(false);
-  const [uploadErr, setUploadErr] = useState(null);
+  const fileRef             = useRef();
+  const [busy, setBusy]     = useState(false);
+  const [uploadErr, setErr] = useState(null);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setBusy(true);
-    setUploadErr(null);
+    setErr(null);
     try {
       const url = await uploadToStorage(file, 'posts');
-      await onHeroUpload(post.id, url);
+      await onHeroUpload(post.id, url);   // parent handles DB write + toast
     } catch (err) {
       const msg = err?.message || String(err);
       console.error('[HeroCell] upload failed:', msg);
-      setUploadErr(msg);
+      setErr(msg);
     } finally {
       setBusy(false);
       e.target.value = '';
@@ -193,52 +228,63 @@ function HeroCell({ post, onHeroUpload }) {
   };
 
   return (
-    <div className="flex flex-col gap-1 flex-shrink-0" style={{ width: '72px' }}>
+    <div className="flex items-center gap-3 flex-shrink-0">
+      {/* Thumbnail */}
       <div
-        onClick={() => !busy && fileRef.current?.click()}
-        className="relative rounded-lg overflow-hidden border cursor-pointer flex items-center justify-center transition-all group"
+        className="relative rounded-lg overflow-hidden border flex-shrink-0"
         style={{
-          width: '72px', height: '48px',
-          borderColor: uploadErr ? 'rgba(239,68,68,0.5)' : post.featured_image ? `${BRASS}40` : BORDER,
+          width: '64px', height: '44px',
+          borderColor: uploadErr ? 'rgba(239,68,68,0.5)' : post.featured_image ? `${BRASS}50` : BORDER,
           background:  post.featured_image ? 'transparent' : PARCHMENT2,
         }}
-        title={post.featured_image ? 'Replace hero image' : 'Upload hero image'}
       >
-        {post.featured_image ? (
-          <>
-            <img src={post.featured_image} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: 'rgba(0,0,0,0.5)' }}>
-              {busy
-                ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                : <Upload className="w-3.5 h-3.5 text-white" />}
+        {post.featured_image
+          ? <img src={post.featured_image} alt="" className="w-full h-full object-cover" />
+          : <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon className="w-4 h-4" style={{ color: SLATE_FAINT }} />
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-1 group-hover:opacity-70 transition-opacity">
-            {busy
-              ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: SIGNAL }} />
-              : uploadErr
-                ? <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                : <ImageIcon className="w-4 h-4" style={{ color: SLATE_FAINT }} />}
-            {!busy && <span className="text-[8px] font-bold uppercase" style={{ color: uploadErr ? '#ef4444' : SLATE_FAINT }}>
-              {uploadErr ? 'Error' : 'Hero'}
-            </span>}
+        }
+        {busy && (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(44,62,80,0.55)' }}>
+            <Loader2 className="w-4 h-4 text-white animate-spin" />
           </div>
         )}
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
 
-      {/* Inline error tooltip */}
-      {uploadErr && (
-        <div
-          className="rounded px-1.5 py-1 text-[8px] font-mono leading-tight break-all"
-          style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', maxWidth: '72px' }}
-          title={uploadErr}
+      {/* Upload Hero button */}
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 whitespace-nowrap"
+          style={{
+            background:  uploadErr ? 'rgba(239,68,68,0.08)' : `${SIGNAL}12`,
+            color:       uploadErr ? '#ef4444' : SIGNAL_DIM,
+            border:      `1px solid ${uploadErr ? 'rgba(239,68,68,0.3)' : `${SIGNAL}30`}`,
+          }}
+          onMouseEnter={e => { if (!busy && !uploadErr) e.currentTarget.style.background = `${SIGNAL}22`; }}
+          onMouseLeave={e => { e.currentTarget.style.background = uploadErr ? 'rgba(239,68,68,0.08)' : `${SIGNAL}12`; }}
         >
-          {uploadErr.length > 40 ? uploadErr.slice(0, 40) + '…' : uploadErr}
-        </div>
-      )}
+          {busy
+            ? <Loader2 className="w-3 h-3 animate-spin" />
+            : uploadErr
+              ? <AlertCircle className="w-3 h-3" />
+              : <Upload className="w-3 h-3" />}
+          {busy ? 'Uploading…' : uploadErr ? 'Retry' : post.featured_image ? 'Replace Hero' : 'Upload Hero'}
+        </button>
+        {uploadErr && (
+          <p
+            className="text-[8px] font-mono leading-tight max-w-[110px] truncate"
+            style={{ color: '#ef4444' }}
+            title={uploadErr}
+          >
+            {uploadErr}
+          </p>
+        )}
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </div>
   );
 }
@@ -247,16 +293,16 @@ function HeroCell({ post, onHeroUpload }) {
 function PostRow({ post, onUpdate, onHeroUpload }) {
   return (
     <div
-      className="flex items-center gap-4 px-5 py-3.5 rounded-xl border transition-all duration-150 group"
+      className="flex items-center gap-4 px-5 py-3 rounded-xl border transition-all duration-150"
       style={{ background: WHITE, borderColor: BORDER, boxShadow: '0 1px 3px rgba(44,62,80,0.06)' }}
     >
-      {/* Hero thumbnail + upload */}
+      {/* Hero thumbnail + upload button */}
       <HeroCell post={post} onHeroUpload={onHeroUpload} />
 
       {/* Title + Date */}
       <div className="flex-1 min-w-0">
         <p
-          className="text-sm font-bold leading-tight truncate transition-colors group-hover:opacity-80"
+          className="text-sm font-bold leading-tight truncate"
           style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}
         >
           {post.title}
@@ -1130,13 +1176,17 @@ function dbRowToPost(row) {
 // ── Main Newsroom ─────────────────────────────────────────────────────────────
 export default function Newsroom() {
   const [posts,      setPosts]      = useState(SEED_POSTS);
-  const [dbLoaded,   setDbLoaded]   = useState(false); // true once we've pulled from DB
+  const [dbLoaded,   setDbLoaded]   = useState(false);
   const [activeNav,  setActiveNav]  = useState('all');
   const [search,     setSearch]     = useState('');
   const [filterInd,  setFilterInd]  = useState('');
   const [sortField,  setSortField]  = useState('date');
   const [sortDir,    setSortDir]    = useState('desc');
   const [showFilter, setShowFilter] = useState(false);
+  const [toast,      setToast]      = useState(null); // { message, sub }
+
+  const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
+  const clearToast = useCallback(() => setToast(null), []);
 
   // Fetch all posts from Supabase and replace local state
   const loadPostsFromDb = async () => {
@@ -1172,10 +1222,11 @@ export default function Newsroom() {
 
     if (error) {
       console.error('[Newsroom] featured_image update failed:', error.message);
-      // Revert optimistic update on failure
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
     } else {
       console.log('[Newsroom] ✅ featured_image saved for post', postId);
+      const post = posts.find(p => p.id === postId);
+      fireToast('Image Brewed!', post?.title ? `Hero set for "${post.title}"` : 'Featured image saved to database.');
     }
   };
 
@@ -1470,6 +1521,15 @@ export default function Newsroom() {
           </div>
         </div>
       </main>
+
+      {/* ── "Image Brewed!" toast ─────────────────────────────── */}
+      {toast && (
+        <NewsroomToast
+          message={toast.message}
+          sub={toast.sub}
+          onDismiss={clearToast}
+        />
+      )}
     </div>
   );
 }
