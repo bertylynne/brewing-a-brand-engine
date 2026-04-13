@@ -157,7 +157,7 @@ function StatusToggle({ value, onChange }) {
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
-const BUCKET = 'newsroom-assets';
+const BUCKET = 'post-images';
 
 async function uploadToStorage(file, folder = 'posts') {
   const ext  = file.name.split('.').pop();
@@ -170,18 +170,22 @@ async function uploadToStorage(file, folder = 'posts') {
 
 // ── Hero image cell ───────────────────────────────────────────────────────────
 function HeroCell({ post, onHeroUpload }) {
-  const fileRef  = useRef();
-  const [busy, setBusy] = useState(false);
+  const fileRef        = useRef();
+  const [busy,  setBusy]  = useState(false);
+  const [uploadErr, setUploadErr] = useState(null);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setBusy(true);
+    setUploadErr(null);
     try {
       const url = await uploadToStorage(file, 'posts');
       await onHeroUpload(post.id, url);
     } catch (err) {
-      console.error('[HeroCell] upload failed:', err.message);
+      const msg = err?.message || String(err);
+      console.error('[HeroCell] upload failed:', msg);
+      setUploadErr(msg);
     } finally {
       setBusy(false);
       e.target.value = '';
@@ -189,35 +193,52 @@ function HeroCell({ post, onHeroUpload }) {
   };
 
   return (
-    <div
-      onClick={() => !busy && fileRef.current?.click()}
-      className="relative rounded-lg overflow-hidden border cursor-pointer flex items-center justify-center transition-all group flex-shrink-0"
-      style={{
-        width: '72px', height: '48px',
-        borderColor: post.featured_image ? `${BRASS}40` : BORDER,
-        background:  post.featured_image ? 'transparent' : PARCHMENT2,
-      }}
-      title={post.featured_image ? 'Replace hero image' : 'Upload hero image'}
-    >
-      {post.featured_image ? (
-        <>
-          <img src={post.featured_image} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: 'rgba(0,0,0,0.5)' }}>
+    <div className="flex flex-col gap-1 flex-shrink-0" style={{ width: '72px' }}>
+      <div
+        onClick={() => !busy && fileRef.current?.click()}
+        className="relative rounded-lg overflow-hidden border cursor-pointer flex items-center justify-center transition-all group"
+        style={{
+          width: '72px', height: '48px',
+          borderColor: uploadErr ? 'rgba(239,68,68,0.5)' : post.featured_image ? `${BRASS}40` : BORDER,
+          background:  post.featured_image ? 'transparent' : PARCHMENT2,
+        }}
+        title={post.featured_image ? 'Replace hero image' : 'Upload hero image'}
+      >
+        {post.featured_image ? (
+          <>
+            <img src={post.featured_image} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'rgba(0,0,0,0.5)' }}>
+              {busy
+                ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                : <Upload className="w-3.5 h-3.5 text-white" />}
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-1 group-hover:opacity-70 transition-opacity">
             {busy
-              ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-              : <Upload className="w-3.5 h-3.5 text-white" />}
+              ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: SIGNAL }} />
+              : uploadErr
+                ? <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
+                : <ImageIcon className="w-4 h-4" style={{ color: SLATE_FAINT }} />}
+            {!busy && <span className="text-[8px] font-bold uppercase" style={{ color: uploadErr ? '#ef4444' : SLATE_FAINT }}>
+              {uploadErr ? 'Error' : 'Hero'}
+            </span>}
           </div>
-        </>
-      ) : (
-        <div className="flex flex-col items-center gap-1 group-hover:opacity-70 transition-opacity">
-          {busy
-            ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: SIGNAL }} />
-            : <ImageIcon className="w-4 h-4" style={{ color: SLATE_FAINT }} />}
-          {!busy && <span className="text-[8px] font-bold uppercase" style={{ color: SLATE_FAINT }}>Hero</span>}
+        )}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      </div>
+
+      {/* Inline error tooltip */}
+      {uploadErr && (
+        <div
+          className="rounded px-1.5 py-1 text-[8px] font-mono leading-tight break-all"
+          style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', maxWidth: '72px' }}
+          title={uploadErr}
+        >
+          {uploadErr.length > 40 ? uploadErr.slice(0, 40) + '…' : uploadErr}
         </div>
       )}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </div>
   );
 }
@@ -605,9 +626,10 @@ function ImageLibrary() {
           a.id === entry.id ? { ...a, remoteUrl: url, uploading: false } : a
         ));
       } catch (err) {
-        console.error('[ImageLibrary] upload error:', err.message);
+        const msg = err?.message || String(err);
+        console.error('[ImageLibrary] upload error:', msg);
         setAssets(prev => prev.map(a =>
-          a.id === entry.id ? { ...a, uploading: false, error: err.message } : a
+          a.id === entry.id ? { ...a, uploading: false, error: msg } : a
         ));
       }
     }
@@ -733,7 +755,9 @@ function ImageLibrary() {
                 {asset.error && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2" style={{ background: 'rgba(239,68,68,0.08)' }}>
                     <AlertCircle className="w-4 h-4" style={{ color: '#dc2626' }} />
-                    <span className="text-[9px] text-center font-semibold" style={{ color: '#dc2626' }}>Upload failed</span>
+                    <span className="text-[9px] text-center font-semibold leading-tight" style={{ color: '#dc2626' }}>
+                      {asset.error}
+                    </span>
                   </div>
                 )}
               </div>
