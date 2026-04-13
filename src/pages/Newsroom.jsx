@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   FileText, Inbox, LayoutGrid, Upload, ChevronDown, Check,
-  AlertCircle, X, Plus, Search, Filter, ArrowUpDown, ExternalLink,
+  AlertCircle, X, Plus, Search, Filter, ArrowUpDown,
   Image as ImageIcon, Newspaper, Code2, Download, RefreshCw, Eye, EyeOff,
-  Database,
+  Database, Copy, CheckCheck, Images, Loader2,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -156,55 +156,81 @@ function StatusToggle({ value, onChange }) {
   );
 }
 
-// ── Image cell ────────────────────────────────────────────────────────────────
-function ImageCell({ post, onUpload }) {
-  const fileRef = useRef();
+// ── Storage helpers ───────────────────────────────────────────────────────────
+const BUCKET = 'newsroom-assets';
+
+async function uploadToStorage(file, folder = 'posts') {
+  const ext  = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// ── Hero image cell ───────────────────────────────────────────────────────────
+function HeroCell({ post, onHeroUpload }) {
+  const fileRef  = useRef();
+  const [busy, setBusy] = useState(false);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const url = await uploadToStorage(file, 'posts');
+      await onHeroUpload(post.id, url);
+    } catch (err) {
+      console.error('[HeroCell] upload failed:', err.message);
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div
-      onClick={() => fileRef.current?.click()}
-      className="relative rounded-lg overflow-hidden border cursor-pointer flex items-center justify-center transition-all group"
+      onClick={() => !busy && fileRef.current?.click()}
+      className="relative rounded-lg overflow-hidden border cursor-pointer flex items-center justify-center transition-all group flex-shrink-0"
       style={{
-        width: '56px', height: '36px', flexShrink: 0,
-        borderColor: post.image ? `${BRASS}30` : BORDER,
-        background:  post.image ? 'transparent' : PARCHMENT2,
+        width: '72px', height: '48px',
+        borderColor: post.featured_image ? `${BRASS}40` : BORDER,
+        background:  post.featured_image ? 'transparent' : PARCHMENT2,
       }}
-      title="Upload featured image"
+      title={post.featured_image ? 'Replace hero image' : 'Upload hero image'}
     >
-      {post.image ? (
+      {post.featured_image ? (
         <>
-          <img src={post.image} alt="" className="w-full h-full object-cover" />
+          <img src={post.featured_image} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: 'rgba(0,0,0,0.45)' }}>
-            <Upload className="w-3 h-3 text-white" />
+            style={{ background: 'rgba(0,0,0,0.5)' }}>
+            {busy
+              ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+              : <Upload className="w-3.5 h-3.5 text-white" />}
           </div>
         </>
       ) : (
-        <div className="flex flex-col items-center gap-0.5 group-hover:opacity-80 transition-opacity">
-          <ImageIcon className="w-3.5 h-3.5" style={{ color: SLATE_FAINT }} />
+        <div className="flex flex-col items-center gap-1 group-hover:opacity-70 transition-opacity">
+          {busy
+            ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: SIGNAL }} />
+            : <ImageIcon className="w-4 h-4" style={{ color: SLATE_FAINT }} />}
+          {!busy && <span className="text-[8px] font-bold uppercase" style={{ color: SLATE_FAINT }}>Hero</span>}
         </div>
       )}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUpload(post.id, URL.createObjectURL(f));
-        }}
-      />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </div>
   );
 }
 
 // ── Post row ──────────────────────────────────────────────────────────────────
-function PostRow({ post, onUpdate }) {
+function PostRow({ post, onUpdate, onHeroUpload }) {
   return (
     <div
       className="flex items-center gap-4 px-5 py-3.5 rounded-xl border transition-all duration-150 group"
       style={{ background: WHITE, borderColor: BORDER, boxShadow: '0 1px 3px rgba(44,62,80,0.06)' }}
     >
-      {/* Image */}
-      <ImageCell
-        post={post}
-        onUpload={(id, url) => onUpdate(id, 'image', url)}
-      />
+      {/* Hero thumbnail + upload */}
+      <HeroCell post={post} onHeroUpload={onHeroUpload} />
 
       {/* Title + Date */}
       <div className="flex-1 min-w-0">
@@ -216,6 +242,11 @@ function PostRow({ post, onUpdate }) {
         </p>
         <p className="text-[10px] mt-0.5 font-medium" style={{ color: SLATE_MUTED }}>
           {fmtDate(post.date)}
+          {!post.featured_image && (
+            <span className="ml-2 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
+              · No hero
+            </span>
+          )}
         </p>
       </div>
 
@@ -238,8 +269,8 @@ function PostRow({ post, onUpdate }) {
       {/* Brass dot — published indicator */}
       <div
         className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{ background: post.status === 'published' ? BRASS : PARCHMENT2 }}
-        title={post.status === 'published' ? 'Published' : 'Draft'}
+        style={{ background: post.status === 'Published' ? BRASS : PARCHMENT2 }}
+        title={post.status}
       />
     </div>
   );
@@ -495,12 +526,265 @@ function ImportDock({ onImportSuccess }) {
   );
 }
 
+// ── CopyButton ────────────────────────────────────────────────────────────────
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const handle = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={handle}
+      title="Copy URL"
+      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex-shrink-0"
+      style={{
+        background: copied ? 'rgba(74,222,128,0.12)' : PARCHMENT2,
+        color:      copied ? '#4ade80' : SLATE_MUTED,
+        border:     `1px solid ${copied ? 'rgba(74,222,128,0.3)' : BORDER}`,
+      }}
+    >
+      {copied ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
+// ── Image Library ─────────────────────────────────────────────────────────────
+function ImageLibrary() {
+  const [assets,   setAssets]   = useState([]);   // { id, file, localUrl, remoteUrl, name, uploading, error }
+  const [loading,  setLoading]  = useState(false);
+  const [fetchErr, setFetchErr] = useState(null);
+  const dropRef  = useRef();
+  const fileRef  = useRef();
+
+  // Load existing assets from storage on mount
+  const loadAssets = useCallback(async () => {
+    setLoading(true);
+    setFetchErr(null);
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list('library', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+
+    if (error) {
+      console.error('[ImageLibrary] list error:', error);
+      setFetchErr(error.message);
+    } else {
+      const mapped = (data || [])
+        .filter(f => f.name !== '.emptyFolderPlaceholder')
+        .map(f => {
+          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(`library/${f.name}`);
+          return { id: f.id || f.name, name: f.name, remoteUrl: urlData.publicUrl, uploading: false, error: null };
+        });
+      setAssets(mapped);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadAssets(); }, [loadAssets]);
+
+  const uploadFiles = async (files) => {
+    const newEntries = Array.from(files).map(file => ({
+      id:        `local-${Date.now()}-${Math.random()}`,
+      name:      file.name,
+      localUrl:  URL.createObjectURL(file),
+      remoteUrl: null,
+      uploading: true,
+      error:     null,
+      _file:     file,
+    }));
+
+    setAssets(prev => [...newEntries, ...prev]);
+
+    for (const entry of newEntries) {
+      try {
+        const url = await uploadToStorage(entry._file, 'library');
+        setAssets(prev => prev.map(a =>
+          a.id === entry.id ? { ...a, remoteUrl: url, uploading: false } : a
+        ));
+      } catch (err) {
+        console.error('[ImageLibrary] upload error:', err.message);
+        setAssets(prev => prev.map(a =>
+          a.id === entry.id ? { ...a, uploading: false, error: err.message } : a
+        ));
+      }
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = BORDER;
+    const files = e.dataTransfer.files;
+    if (files.length) uploadFiles(files);
+  };
+
+  const hasAssets = assets.length > 0;
+
+  return (
+    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+      {/* Header card */}
+      <div
+        className="rounded-2xl border overflow-hidden"
+        style={{ borderColor: `${BRASS}30`, background: WHITE, boxShadow: '0 2px 12px rgba(197,160,89,0.08)' }}
+      >
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: `${BRASS}20`, background: `${BRASS}06` }}>
+          <Images className="w-4 h-4 flex-shrink-0" style={{ color: BRASS }} />
+          <div className="flex-1">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: SLATE }}>Image Library</p>
+            <p className="text-[10px]" style={{ color: SLATE_MUTED }}>
+              Upload photos · copy public URLs · use as inline <code className="font-mono">&lt;img&gt;</code> tags in post content
+            </p>
+          </div>
+          <button
+            onClick={loadAssets}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+            style={{ background: PARCHMENT, color: SLATE2, border: `1px solid ${BORDER}` }}
+          >
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all"
+            style={{ background: BRASS, boxShadow: `0 2px 10px ${BRASS}35` }}
+            onMouseEnter={e => e.currentTarget.style.background = BRASS_DIM}
+            onMouseLeave={e => e.currentTarget.style.background = BRASS}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Upload Photos
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={e => { if (e.target.files?.length) uploadFiles(e.target.files); e.target.value = ''; }}
+          />
+        </div>
+
+        {/* Drop zone */}
+        <div
+          ref={dropRef}
+          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = BRASS; }}
+          onDragLeave={e => { e.currentTarget.style.borderColor = 'transparent'; }}
+          onDrop={handleDrop}
+          className="mx-5 my-4 rounded-xl border-2 border-dashed flex items-center justify-center gap-3 py-6 transition-colors cursor-pointer"
+          style={{ borderColor: `${BRASS}30`, background: `${BRASS}04` }}
+          onClick={() => fileRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" style={{ color: BRASS_DIM }} />
+          <span className="text-xs font-semibold" style={{ color: SLATE_MUTED }}>
+            Drag &amp; drop images here, or click to browse
+          </span>
+        </div>
+      </div>
+
+      {/* Error */}
+      {fetchErr && (
+        <div
+          className="rounded-xl px-4 py-3 text-xs flex items-start gap-2"
+          style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', color: '#dc2626' }}
+        >
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Could not list storage assets: {fetchErr}</p>
+            <p className="mt-1 text-[10px]" style={{ color: '#b45309' }}>
+              Make sure the <code className="font-mono">newsroom-assets</code> bucket exists in Supabase Storage and has public read + anon insert policies.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center gap-3 py-12" style={{ color: SLATE_MUTED }}>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="text-sm">Loading library…</span>
+        </div>
+      )}
+
+      {/* Asset grid */}
+      {!loading && hasAssets && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {assets.map(asset => (
+            <div
+              key={asset.id}
+              className="rounded-xl border overflow-hidden flex flex-col"
+              style={{ background: WHITE, borderColor: asset.error ? 'rgba(239,68,68,0.3)' : BORDER, boxShadow: '0 1px 4px rgba(44,62,80,0.07)' }}
+            >
+              {/* Thumbnail */}
+              <div className="relative h-32 flex-shrink-0" style={{ background: PARCHMENT2 }}>
+                {(asset.localUrl || asset.remoteUrl) && (
+                  <img
+                    src={asset.localUrl || asset.remoteUrl}
+                    alt={asset.name}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                {asset.uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(245,240,232,0.75)' }}>
+                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: BRASS }} />
+                  </div>
+                )}
+                {asset.error && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                    <AlertCircle className="w-4 h-4" style={{ color: '#dc2626' }} />
+                    <span className="text-[9px] text-center font-semibold" style={{ color: '#dc2626' }}>Upload failed</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Meta + URL */}
+              <div className="p-2.5 flex flex-col gap-2">
+                <p className="text-[10px] font-semibold truncate" style={{ color: SLATE2 }} title={asset.name}>
+                  {asset.name}
+                </p>
+                {asset.remoteUrl && !asset.uploading && (
+                  <>
+                    <p
+                      className="text-[9px] font-mono truncate rounded px-1.5 py-1"
+                      style={{ background: PARCHMENT, color: SLATE_MUTED, border: `1px solid ${BORDER2}` }}
+                      title={asset.remoteUrl}
+                    >
+                      {asset.remoteUrl}
+                    </p>
+                    <CopyButton text={asset.remoteUrl} />
+                  </>
+                )}
+                {asset.uploading && (
+                  <p className="text-[9px] font-semibold" style={{ color: BRASS_DIM }}>Uploading…</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !hasAssets && !fetchErr && (
+        <div className="flex flex-col items-center gap-3 py-16 rounded-2xl border border-dashed" style={{ borderColor: `${BRASS}20` }}>
+          <Images className="w-8 h-8" style={{ color: SLATE_FAINT }} />
+          <div className="text-center">
+            <p className="text-sm font-semibold" style={{ color: SLATE2 }}>No images yet</p>
+            <p className="text-xs mt-1" style={{ color: SLATE_MUTED }}>Upload photos above to build your library.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Sidebar nav ────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: 'all',    label: 'All Posts',    icon: LayoutGrid },
-  { id: 'drafts', label: 'Drafts',       icon: FileText   },
-  { id: 'import', label: 'Import Dock',  icon: Inbox      },
-  { id: 'audit',  label: 'DB Audit',     icon: Database   },
+  { id: 'all',     label: 'All Posts',     icon: LayoutGrid },
+  { id: 'drafts',  label: 'Drafts',        icon: FileText   },
+  { id: 'library', label: 'Image Library', icon: Images     },
+  { id: 'import',  label: 'Import Dock',   icon: Inbox      },
+  { id: 'audit',   label: 'DB Audit',      icon: Database   },
 ];
 
 function Sidebar({ active, onNav, counts }) {
@@ -808,14 +1092,14 @@ function DbAudit({ localPosts }) {
 // ── Normalise a DB posts row → local post shape ────────────────────────────────
 function dbRowToPost(row) {
   return {
-    id:       row.id,
-    title:    row.title        || 'Untitled',
-    date:     row.date         || row.created_at?.slice(0, 10) || '',
-    industry: row.industry_tag || '',
-    status:   row.status       || 'draft',
-    content:  row.content      || null,
-    excerpt:  row.excerpt      || null,
-    image:    row.image_url    || null,
+    id:             row.id,
+    title:          row.title          || 'Untitled',
+    date:           row.date           || row.created_at?.slice(0, 10) || '',
+    industry:       row.industry_tag   || '',
+    status:         row.status         || 'Draft',
+    content:        row.content        || null,
+    excerpt:        row.excerpt        || null,
+    featured_image: row.featured_image || null,
   };
 }
 
@@ -834,7 +1118,7 @@ export default function Newsroom() {
   const loadPostsFromDb = async () => {
     const { data, error } = await supabase
       .from('posts')
-      .select('id, title, content, excerpt, date, industry_tag, status, created_at')
+      .select('id, title, content, excerpt, date, industry_tag, status, featured_image, created_at')
       .order('date', { ascending: false });
 
     if (!error && data) {
@@ -852,6 +1136,25 @@ export default function Newsroom() {
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
   };
 
+  // Upload hero image → Storage → update featured_image in DB → update local state
+  const handleHeroUpload = async (postId, publicUrl) => {
+    // Optimistic local update
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: publicUrl } : p));
+
+    const { error } = await supabase
+      .from('posts')
+      .update({ featured_image: publicUrl })
+      .eq('id', postId);
+
+    if (error) {
+      console.error('[Newsroom] featured_image update failed:', error.message);
+      // Revert optimistic update on failure
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
+    } else {
+      console.log('[Newsroom] ✅ featured_image saved for post', postId);
+    }
+  };
+
   // Called by ImportDock after a successful DB insert — refreshes the list
   const handleImportSuccess = async () => {
     await loadPostsFromDb();
@@ -860,7 +1163,7 @@ export default function Newsroom() {
 
   // ── Filtering ──────────────────────────────────────────────────────────
   let visible = [...posts];
-  if (activeNav === 'drafts') visible = visible.filter((p) => p.status === 'draft');
+  if (activeNav === 'drafts') visible = visible.filter((p) => p.status === 'Draft' || p.status === 'draft');
   if (search.trim()) {
     const q = search.toLowerCase();
     visible = visible.filter((p) => p.title.toLowerCase().includes(q) || p.industry?.includes(q));
@@ -881,12 +1184,14 @@ export default function Newsroom() {
   };
 
   const counts = {
-    all:    posts.length,
-    drafts: posts.filter((p) => p.status === 'draft').length,
-    import: null,
+    all:     posts.length,
+    drafts:  posts.filter((p) => p.status === 'Draft' || p.status === 'draft').length,
+    library: null,
+    import:  null,
+    audit:   null,
   };
 
-  const publishedCount = posts.filter((p) => p.status === 'published').length;
+  const publishedCount = posts.filter((p) => p.status === 'Published' || p.status === 'published').length;
 
   return (
     <div
@@ -909,15 +1214,17 @@ export default function Newsroom() {
               className="text-lg font-black tracking-tight leading-none"
               style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}
             >
-              {activeNav === 'all'    ? 'All Posts'   :
-               activeNav === 'drafts' ? 'Drafts'      :
-               activeNav === 'audit'  ? 'DB Audit'    : 'Import Dock'}
+              {activeNav === 'all'     ? 'All Posts'     :
+               activeNav === 'drafts'  ? 'Drafts'        :
+               activeNav === 'library' ? 'Image Library' :
+               activeNav === 'audit'   ? 'DB Audit'      : 'Import Dock'}
             </h1>
             <p className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: SLATE_MUTED }}>
-              {activeNav === 'import' ? 'Paste JSON → parse → save to Supabase posts table'  :
-               activeNav === 'audit'  ? 'Verify title + first paragraph of all records' :
+              {activeNav === 'import'  ? 'Paste JSON → parse → save to Supabase posts table' :
+               activeNav === 'library' ? 'Upload photos · get public URLs · use as inline images in posts' :
+               activeNav === 'audit'   ? 'Verify title + first paragraph of all records' :
                `${visible.length} post${visible.length !== 1 ? 's' : ''} · ${publishedCount} published`}
-              {activeNav !== 'import' && activeNav !== 'audit' && (
+              {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
                 <span
                   className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
                   style={{
@@ -933,7 +1240,7 @@ export default function Newsroom() {
           </div>
 
           {/* Stats pills */}
-          {activeNav !== 'import' && activeNav !== 'audit' && (
+          {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5"
                 style={{ borderColor: `${SIGNAL}30`, background: `${SIGNAL}08`, color: SIGNAL_DIM }}>
@@ -949,7 +1256,7 @@ export default function Newsroom() {
           )}
 
           {/* Add post (stub) */}
-          {activeNav !== 'import' && activeNav !== 'audit' && (
+          {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
             <button
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all active:scale-95"
               style={{ background: SIGNAL, boxShadow: `0 2px 10px ${SIGNAL}35` }}
@@ -972,6 +1279,11 @@ export default function Newsroom() {
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
 
+            {/* ── IMAGE LIBRARY view ───────────────────────────── */}
+            {activeNav === 'library' && (
+              <ImageLibrary />
+            )}
+
             {/* ── DB AUDIT view ────────────────────────────────── */}
             {activeNav === 'audit' && (
               <DbAudit localPosts={posts} />
@@ -985,7 +1297,7 @@ export default function Newsroom() {
             )}
 
             {/* ── POST LIST view ───────────────────────────────── */}
-            {activeNav !== 'import' && activeNav !== 'audit' && (
+            {activeNav !== 'import' && activeNav !== 'audit' && activeNav !== 'library' && (
               <>
                 {/* Toolbar */}
                 <div className="flex items-center gap-3 mb-5">
@@ -1070,8 +1382,8 @@ export default function Newsroom() {
                   className="flex items-center gap-4 px-5 pb-2 mb-2"
                   style={{ color: SLATE_FAINT }}
                 >
-                  <div style={{ width: '56px', flexShrink: 0 }}>
-                    <span className="text-[9px] font-bold uppercase tracking-widest">Image</span>
+                  <div style={{ width: '72px', flexShrink: 0 }}>
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Hero</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-[9px] font-bold uppercase tracking-widest">Title / Date</span>
@@ -1089,7 +1401,7 @@ export default function Newsroom() {
                 {visible.length > 0 ? (
                   <div className="flex flex-col gap-2">
                     {visible.map((post) => (
-                      <PostRow key={post.id} post={post} onUpdate={updatePost} />
+                      <PostRow key={post.id} post={post} onUpdate={updatePost} onHeroUpload={handleHeroUpload} />
                     ))}
                   </div>
                 ) : (
