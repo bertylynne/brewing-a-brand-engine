@@ -246,31 +246,63 @@ function PostRow({ post, onUpdate }) {
 }
 
 // ── Import Dock ───────────────────────────────────────────────────────────────
-function ImportDock({ onImport }) {
+function ImportDock({ onImportSuccess }) {
   const [raw,     setRaw]     = useState('');
   const [error,   setError]   = useState(null);
   const [success, setSuccess] = useState(null);
+  const [saving,  setSaving]  = useState(false);
+  const [preview, setPreview] = useState(null); // parsed + normalised rows before save
 
-  const handleProcess = () => {
+  // Parse JSON into preview (no DB call yet)
+  const handleParse = () => {
     setError(null);
     setSuccess(null);
+    setPreview(null);
     if (!raw.trim()) { setError('Paste JSON data first.'); return; }
     try {
       const parsed = JSON.parse(raw);
-      const posts = Array.isArray(parsed) ? parsed : [parsed];
-      const normalised = posts.map((p, i) => ({
-        id:       Date.now() + i,
-        title:    p.title    || p.name  || 'Untitled Post',
-        date:     p.date     || p.published_at || new Date().toISOString().slice(0,10),
-        industry: p.industry || p.tag   || p.category || '',
-        status:   p.status   || 'draft',
-        image:    p.image    || p.featured_image || null,
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      const normalised = arr.map((p) => ({
+        title:        p.title        || p.name            || 'Untitled Post',
+        content:      p.content      || p.body            || p.text          || null,
+        excerpt:      p.excerpt      || p.summary         || p.description   || null,
+        date:         p.date         || p.published_at    || new Date().toISOString().slice(0, 10),
+        industry_tag: p.industry_tag || p.industry        || p.tag           || p.category || null,
+        status:       p.status       || 'draft',
       }));
-      onImport(normalised);
-      setSuccess(`${normalised.length} post${normalised.length !== 1 ? 's' : ''} imported successfully.`);
-      setRaw('');
+      setPreview(normalised);
     } catch {
-      setError('Invalid JSON. Please check your data format and try again.');
+      setError('Invalid JSON — check your syntax and try again.');
+    }
+  };
+
+  // Save previewed rows to Supabase posts table
+  const handleSave = async () => {
+    if (!preview?.length) return;
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const { error: dbErr } = await supabase
+        .from('posts')
+        .insert(preview);
+
+      if (dbErr) throw dbErr;
+
+      setSuccess(`${preview.length} post${preview.length !== 1 ? 's' : ''} saved to database.`);
+      setRaw('');
+      setPreview(null);
+      // Notify parent to refresh the list from DB
+      await onImportSuccess();
+    } catch (err) {
+      const msg = err?.message || String(err);
+      if (msg.includes('row-level security')) {
+        setError('RLS policy blocked the insert. Ask your Supabase admin to allow anon inserts on the posts table.');
+      } else {
+        setError(`Database error: ${msg}`);
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -287,11 +319,11 @@ function ImportDock({ onImport }) {
         <Inbox className="w-4 h-4 flex-shrink-0" style={{ color: SIGNAL }} />
         <div>
           <p className="text-xs font-bold uppercase tracking-widest" style={{ color: SLATE }}>Import Dock</p>
-          <p className="text-[10px]" style={{ color: SLATE_MUTED }}>Paste structured JSON to bulk-import posts</p>
+          <p className="text-[10px]" style={{ color: SLATE_MUTED }}>Paste JSON → parse → save to Supabase posts table</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-[9px] font-mono px-2 py-0.5 rounded border" style={{ borderColor: `${SIGNAL}30`, color: SIGNAL, background: `${SIGNAL}0a` }}>
-            JSON
+            JSON → DB
           </span>
         </div>
       </div>
@@ -299,12 +331,14 @@ function ImportDock({ onImport }) {
       <div className="p-5 flex flex-col gap-4">
         {/* Schema hint */}
         <div className="rounded-xl border px-3.5 py-3" style={{ borderColor: BORDER2, background: PARCHMENT }}>
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: SLATE_MUTED }}>Expected schema</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: SLATE_MUTED }}>DB schema (posts table)</p>
           <pre className="text-[10px] font-mono leading-relaxed overflow-x-auto" style={{ color: SLATE2 }}>{`[{
-  "title": "Post Title",
-  "date": "2025-01-15",
-  "industry": "barber",
-  "status": "published"
+  "title":        "Post Title",          // required
+  "content":      "Full body text…",     // optional
+  "excerpt":      "Short summary…",      // optional
+  "date":         "2025-01-15",          // YYYY-MM-DD
+  "industry_tag": "barber",             // optional
+  "status":       "published"           // published | draft
 }]`}</pre>
         </div>
 
@@ -315,47 +349,103 @@ function ImportDock({ onImport }) {
           </label>
           <textarea
             value={raw}
-            onChange={(e) => { setRaw(e.target.value); setError(null); setSuccess(null); }}
+            onChange={(e) => { setRaw(e.target.value); setError(null); setSuccess(null); setPreview(null); }}
             rows={8}
-            placeholder={`[\n  {\n    "title": "My Post",\n    "date": "2025-06-01",\n    "industry": "digital",\n    "status": "draft"\n  }\n]`}
+            placeholder={`[\n  {\n    "title": "My Post",\n    "content": "Full article body here...",\n    "excerpt": "Short summary.",\n    "date": "2025-06-01",\n    "industry_tag": "digital",\n    "status": "draft"\n  }\n]`}
             className="w-full rounded-xl border px-4 py-3 text-xs font-mono leading-relaxed resize-none outline-none transition-colors"
             style={{
-              background:   PARCHMENT,
-              borderColor:  error ? 'rgba(239,68,68,0.4)' : `${SIGNAL}25`,
-              color:        SLATE,
-              fontFamily:   "'JetBrains Mono', 'Courier New', monospace",
+              background:  PARCHMENT,
+              borderColor: error ? 'rgba(239,68,68,0.4)' : `${SIGNAL}25`,
+              color:       SLATE,
+              fontFamily:  "'JetBrains Mono', 'Courier New', monospace",
             }}
             onFocus={(e) => { e.target.style.borderColor = `${SIGNAL}60`; }}
             onBlur={(e)  => { e.target.style.borderColor = error ? 'rgba(239,68,68,0.4)' : `${SIGNAL}25`; }}
           />
         </div>
 
+        {/* Parse preview */}
+        {preview && (
+          <div
+            className="rounded-xl border overflow-hidden"
+            style={{ borderColor: `${SIGNAL}25`, background: `${SIGNAL}05` }}
+          >
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: `${SIGNAL}20` }}>
+              <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: SIGNAL }} />
+              <span className="text-[11px] font-bold" style={{ color: SIGNAL_DIM }}>
+                {preview.length} record{preview.length !== 1 ? 's' : ''} parsed — ready to save
+              </span>
+            </div>
+            <div className="px-4 py-2 flex flex-col gap-1 max-h-40 overflow-y-auto">
+              {preview.map((p, i) => (
+                <div key={i} className="flex items-center gap-2 py-1 border-b last:border-0" style={{ borderColor: `${SIGNAL}10` }}>
+                  <span className="text-[9px] font-bold w-5 text-right flex-shrink-0" style={{ color: SIGNAL_DIM }}>{i + 1}</span>
+                  <span className="flex-1 text-[11px] font-semibold truncate" style={{ color: SLATE }}>{p.title}</span>
+                  <span className="text-[9px] font-mono flex-shrink-0" style={{ color: SLATE_FAINT }}>{p.industry_tag || '—'}</span>
+                  <span
+                    className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: p.status === 'published' ? `${SIGNAL}15` : PARCHMENT2,
+                      color:      p.status === 'published' ? SIGNAL_DIM : SLATE_FAINT,
+                    }}
+                  >
+                    {p.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Feedback */}
         {error && (
-          <div className="flex items-center gap-2 text-xs text-red-500 animate-fade-up">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            {error}
+          <div className="flex items-start gap-2 text-xs text-red-500">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
         {success && (
-          <div className="flex items-center gap-2 text-xs font-semibold animate-fade-up" style={{ color: '#4ade80' }}>
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: '#4ade80' }}>
             <Check className="w-3.5 h-3.5 flex-shrink-0" />
             {success}
           </div>
         )}
 
-        {/* Process button */}
-        <button
-          onClick={handleProcess}
-          disabled={!raw.trim()}
-          className="flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: SIGNAL, boxShadow: `0 4px 14px ${SIGNAL}40` }}
-          onMouseEnter={(e) => { if (raw.trim()) e.currentTarget.style.background = SIGNAL_DIM; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = SIGNAL; }}
-        >
-          <Code2 className="w-4 h-4" />
-          Process Data
-        </button>
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          {/* Step 1: Parse */}
+          <button
+            onClick={handleParse}
+            disabled={!raw.trim() || saving}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background:  preview ? PARCHMENT2 : SIGNAL,
+              color:       preview ? SLATE2     : WHITE,
+              boxShadow:   preview ? 'none'     : `0 4px 14px ${SIGNAL}40`,
+              border:      preview ? `1px solid ${BORDER}` : 'none',
+            }}
+          >
+            <Code2 className="w-4 h-4" />
+            {preview ? 'Re-Parse' : 'Parse Data'}
+          </button>
+
+          {/* Step 2: Save to DB (only shown after parse) */}
+          {preview && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+              style={{ background: BRASS, boxShadow: `0 4px 14px ${BRASS}40` }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = BRASS_DIM; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = BRASS; }}
+            >
+              {saving
+                ? <RefreshCw className="w-4 h-4 animate-spin" />
+                : <Download className="w-4 h-4" />}
+              {saving ? 'Saving…' : `Save ${preview.length} to DB`}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -671,9 +761,24 @@ function DbAudit({ localPosts }) {
   );
 }
 
+// ── Normalise a DB posts row → local post shape ────────────────────────────────
+function dbRowToPost(row) {
+  return {
+    id:       row.id,
+    title:    row.title        || 'Untitled',
+    date:     row.date         || row.created_at?.slice(0, 10) || '',
+    industry: row.industry_tag || '',
+    status:   row.status       || 'draft',
+    content:  row.content      || null,
+    excerpt:  row.excerpt      || null,
+    image:    row.image_url    || null,
+  };
+}
+
 // ── Main Newsroom ─────────────────────────────────────────────────────────────
 export default function Newsroom() {
   const [posts,      setPosts]      = useState(SEED_POSTS);
+  const [dbLoaded,   setDbLoaded]   = useState(false); // true once we've pulled from DB
   const [activeNav,  setActiveNav]  = useState('all');
   const [search,     setSearch]     = useState('');
   const [filterInd,  setFilterInd]  = useState('');
@@ -681,12 +786,32 @@ export default function Newsroom() {
   const [sortDir,    setSortDir]    = useState('desc');
   const [showFilter, setShowFilter] = useState(false);
 
+  // Fetch all posts from Supabase and replace local state
+  const loadPostsFromDb = async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, title, content, excerpt, date, industry_tag, status, created_at')
+      .order('date', { ascending: false });
+
+    if (!error && data) {
+      setPosts(data.map(dbRowToPost));
+      setDbLoaded(true);
+    }
+  };
+
+  // On mount: try to load real data; fall back to seed if empty/error
+  useEffect(() => {
+    loadPostsFromDb();
+  }, []);
+
   const updatePost = (id, field, value) => {
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
   };
 
-  const importPosts = (newPosts) => {
-    setPosts((prev) => [...newPosts, ...prev]);
+  // Called by ImportDock after a successful DB insert — refreshes the list
+  const handleImportSuccess = async () => {
+    await loadPostsFromDb();
+    setActiveNav('all'); // switch back to the list view
   };
 
   // ── Filtering ──────────────────────────────────────────────────────────
@@ -744,10 +869,22 @@ export default function Newsroom() {
                activeNav === 'drafts' ? 'Drafts'      :
                activeNav === 'audit'  ? 'DB Audit'    : 'Import Dock'}
             </h1>
-            <p className="text-[11px] mt-0.5" style={{ color: SLATE_MUTED }}>
-              {activeNav === 'import' ? 'Bulk-import posts from JSON'  :
+            <p className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: SLATE_MUTED }}>
+              {activeNav === 'import' ? 'Paste JSON → parse → save to Supabase posts table'  :
                activeNav === 'audit'  ? 'Verify title + first paragraph of all records' :
                `${visible.length} post${visible.length !== 1 ? 's' : ''} · ${publishedCount} published`}
+              {activeNav !== 'import' && activeNav !== 'audit' && (
+                <span
+                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  style={{
+                    background: dbLoaded ? `${SIGNAL}15` : PARCHMENT2,
+                    color:      dbLoaded ? SIGNAL_DIM    : SLATE_FAINT,
+                    border:     `1px solid ${dbLoaded ? `${SIGNAL}30` : BORDER}`,
+                  }}
+                >
+                  {dbLoaded ? 'Live DB' : 'Seed data'}
+                </span>
+              )}
             </p>
           </div>
 
@@ -799,7 +936,7 @@ export default function Newsroom() {
             {/* ── IMPORT DOCK view ─────────────────────────────── */}
             {activeNav === 'import' && (
               <div className="max-w-2xl mx-auto">
-                <ImportDock onImport={importPosts} />
+                <ImportDock onImportSuccess={handleImportSuccess} />
               </div>
             )}
 
