@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import {
   ChevronRight, ChevronLeft, Upload, UserCircle,
   Trash2, Plus, Users, Link, Mail, Phone, ImageIcon, Briefcase, FileText,
-  ShieldCheck, AlertCircle, Globe, PhoneCall, Footprints,
+  ShieldCheck, AlertCircle, Globe, PhoneCall, Footprints, Hammer,
 } from 'lucide-react';
 
 const InstagramIcon = ({ className, style }) => (
@@ -21,25 +21,12 @@ const POSITION_PRESETS = {
 
 const BIO_LIMIT = 250;
 
+// 4-way booking style options
 const BOOKING_STYLE_OPTIONS = [
-  {
-    value: 'digital',
-    label: 'Digital',
-    sub: 'Show booking URL',
-    icon: Globe,
-  },
-  {
-    value: 'walkin',
-    label: 'Walk-in',
-    sub: 'Walk-ins only',
-    icon: Footprints,
-  },
-  {
-    value: 'hybrid',
-    label: 'Hybrid',
-    sub: 'Call to book',
-    icon: PhoneCall,
-  },
+  { value: 'digital',  label: 'Digital',     sub: 'Booking URL',    icon: Globe    },
+  { value: 'walkin',   label: 'Walk-in',      sub: 'Walk-ins only',  icon: Footprints },
+  { value: 'hybrid',   label: 'Hybrid',       sub: 'Call to book',   icon: PhoneCall  },
+  { value: 'build',    label: 'Build for Me', sub: 'CBA sets up',    icon: Hammer     },
 ];
 
 function TitleInput({ value, onChange, businessType }) {
@@ -92,10 +79,11 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
     onUpdate(member.id, 'photoName', file.name);
   };
 
-  const bookingStyle = member.bookingStyle || 'digital';
-  const bioLen       = (member.bio || '').length;
-  const bioOver      = bioLen > BIO_LIMIT;
-  const bioNear      = bioLen >= 220;
+  const bookingStyle    = member.bookingStyle || 'digital';
+  const portfolioOn     = !!member.portfolioAccess;
+  const bioLen          = (member.bio || '').length;
+  const bioOver         = bioLen > BIO_LIMIT;
+  const bioNear         = bioLen >= 220;
 
   return (
     <div
@@ -111,7 +99,7 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
           <span className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
             Team Member
           </span>
-          {/* Booking Style badge */}
+          {/* Booking Style badges */}
           {bookingStyle === 'walkin' && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
               style={{ borderColor: `${accent}40`, background: `${accent}10`, color: accent }}>
@@ -126,10 +114,25 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
               Call to Book
             </span>
           )}
+          {bookingStyle === 'build' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
+              style={{ borderColor: 'rgba(167,139,250,0.4)', background: 'rgba(167,139,250,0.08)', color: '#a78bfa' }}>
+              <Hammer className="w-2.5 h-2.5" />
+              CBA Setup
+            </span>
+          )}
+          {/* Portfolio tier badge */}
+          {portfolioOn && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
+              style={{ borderColor: 'rgba(201,162,39,0.4)', background: 'rgba(201,162,39,0.08)', color: 'var(--gold)' }}>
+              <ShieldCheck className="w-2.5 h-2.5" />
+              Portfolio
+            </span>
+          )}
         </div>
         <button
           onClick={() => onDelete(member.id)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ml-2 flex-shrink-0"
           style={{ color: 'var(--text-faint)' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.background = 'transparent'; }}
@@ -140,69 +143,74 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
       </div>
 
       <div className="p-4 flex flex-col gap-5">
-        {/* Public Profile */}
+
+        {/* ── Public Profile ──────────────────────────────── */}
         <div>
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
             Public Profile
           </p>
 
-          {/* Photo upload 16:9 */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
-            onClick={() => fileRef.current?.click()}
-            className="relative w-full rounded-xl overflow-hidden border-2 border-dashed cursor-pointer transition-all duration-200 mb-3"
-            style={{
-              aspectRatio: '16 / 9',
-              borderColor: dragging ? 'var(--gold)' : member.photo ? `${accent}40` : 'var(--border)',
-              background: dragging ? 'rgba(201,162,39,0.06)' : member.photo ? 'var(--bg-raised)' : 'var(--bg-surface)',
-            }}
-          >
-            {member.photo ? (
-              <>
-                <img src={member.photo} alt={member.name || 'Staff'} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity gap-1.5">
-                  <Upload className="w-5 h-5 text-white" />
-                  <span className="text-[11px] text-white/80 font-medium">Replace photo</span>
-                </div>
-                <div className="absolute bottom-2 left-2 right-2">
-                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
-                    <ImageIcon className="w-3 h-3" style={{ color: 'var(--gold)' }} />
-                    <span className="text-[10px] text-white/70 truncate">{member.photoName}</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                {dragging ? (
+          {/* Photo upload — only when Portfolio Access is ON */}
+          {portfolioOn && (
+            <>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+                onClick={() => fileRef.current?.click()}
+                className="relative w-full rounded-xl overflow-hidden border-2 border-dashed cursor-pointer transition-all duration-200 mb-3"
+                style={{
+                  aspectRatio: '16 / 9',
+                  borderColor: dragging ? 'var(--gold)' : member.photo ? `${accent}40` : 'var(--border)',
+                  background: dragging ? 'rgba(201,162,39,0.06)' : member.photo ? 'var(--bg-raised)' : 'var(--bg-surface)',
+                }}
+              >
+                {member.photo ? (
                   <>
-                    <Upload className="w-6 h-6" style={{ color: 'var(--gold)' }} />
-                    <span className="text-xs font-medium" style={{ color: 'var(--gold)' }}>Drop to upload</span>
+                    <img src={member.photo} alt={member.name || 'Staff'} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity gap-1.5">
+                      <Upload className="w-5 h-5 text-white" />
+                      <span className="text-[11px] text-white/80 font-medium">Replace photo</span>
+                    </div>
+                    <div className="absolute bottom-2 left-2 right-2">
+                      <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                        <ImageIcon className="w-3 h-3" style={{ color: 'var(--gold)' }} />
+                        <span className="text-[10px] text-white/70 truncate">{member.photoName}</span>
+                      </div>
+                    </div>
                   </>
                 ) : (
-                  <>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center border" style={{ borderColor: `${accent}25`, background: `${accent}08` }}>
-                      <UserCircle className="w-5 h-5" style={{ color: `${accent}60` }} />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Upload Team Photo</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>Landscape format · 16:9 ratio required for best website fit</p>
-                    </div>
-                  </>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    {dragging ? (
+                      <>
+                        <Upload className="w-6 h-6" style={{ color: 'var(--gold)' }} />
+                        <span className="text-xs font-medium" style={{ color: 'var(--gold)' }}>Drop to upload</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center border" style={{ borderColor: `${accent}25`, background: `${accent}08` }}>
+                          <UserCircle className="w-5 h-5" style={{ color: `${accent}60` }} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Upload Team Photo</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>Landscape format · 16:9 ratio required for best website fit</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {!member.photo && (
+                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded border flex items-center gap-1" style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)' }}>
+                    <div className="w-4 h-2.5 border rounded-[2px]" style={{ borderColor: 'var(--text-muted)' }} />
+                    <span className="text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>16:9</span>
+                  </div>
                 )}
               </div>
-            )}
-            {!member.photo && (
-              <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded border flex items-center gap-1" style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)' }}>
-                <div className="w-4 h-2.5 border rounded-[2px]" style={{ borderColor: 'var(--text-muted)' }} />
-                <span className="text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>16:9</span>
-              </div>
-            )}
-          </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
+            </>
+          )}
 
-          {/* Name + Title */}
+          {/* Name + Title — always visible */}
           <div className="grid grid-cols-2 gap-2.5 mb-2.5">
             <div>
               <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'var(--text-faint)' }}>Full Name</label>
@@ -220,12 +228,13 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
             </div>
           </div>
 
-          {/* Booking Style — 3-way toggle */}
+          {/* ── Booking Style — 4-way toggle ─────────────── */}
           <div>
             <label className="block text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: 'var(--text-faint)' }}>
               Booking Style
             </label>
-            <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+            {/* 2×2 grid for 4 options */}
+            <div className="grid grid-cols-2 gap-1.5 mb-2.5">
               {BOOKING_STYLE_OPTIONS.map((opt) => {
                 const isActive = bookingStyle === opt.value;
                 const Icon = opt.icon;
@@ -237,18 +246,20 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
                       if (opt.value !== 'digital') patch.bookingLink = '';
                       onUpdate(member.id, patch);
                     }}
-                    className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl border transition-all duration-150 active:scale-[0.97]"
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-150 active:scale-[0.97] text-left"
                     style={
                       isActive
                         ? { borderColor: `${accent}60`, background: `${accent}10`, color: accent }
                         : { borderColor: 'var(--border)', background: 'var(--bg-surface)', color: 'var(--text-muted)' }
                     }
                   >
-                    <Icon className="w-3.5 h-3.5 mb-0.5" />
-                    <span className="text-xs font-semibold leading-tight">{opt.label}</span>
-                    <span className="text-[9px] leading-tight text-center" style={{ color: isActive ? `${accent}99` : 'var(--text-faint)' }}>
-                      {opt.sub}
-                    </span>
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold leading-tight truncate">{opt.label}</p>
+                      <p className="text-[9px] leading-tight truncate" style={{ color: isActive ? `${accent}99` : 'var(--text-faint)' }}>
+                        {opt.sub}
+                      </p>
+                    </div>
                   </button>
                 );
               })}
@@ -256,7 +267,7 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
 
             {/* Digital: URL input */}
             {bookingStyle === 'digital' && (
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 focus-within:border-opacity-60 transition-colors border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
                 <Link className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
                 <input
                   type="url" value={member.bookingLink || ''}
@@ -287,10 +298,20 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
                 </p>
               </div>
             )}
+
+            {/* Build for Me: info strip */}
+            {bookingStyle === 'build' && (
+              <div className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5" style={{ borderColor: 'rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.06)' }}>
+                <Hammer className="w-4 h-4 flex-shrink-0" style={{ color: '#a78bfa' }} />
+                <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(167,139,250,0.85)' }}>
+                  Our team will reach out to help you set up and integrate a professional booking system for this member.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Professional Bio */}
+        {/* ── Professional Bio ────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-faint)' }}>
@@ -343,27 +364,29 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
           )}
         </div>
 
-        {/* Instagram Handle */}
-        <div>
-          <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'var(--text-faint)' }}>
-            Instagram Handle
-          </label>
-          <div className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
-            style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
-            <InstagramIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#E1306C' }} />
-            <span className="text-sm" style={{ color: 'var(--text-faint)' }}>@</span>
-            <input
-              type="text"
-              value={member.instagram || ''}
-              onChange={(e) => onUpdate(member.id, 'instagram', e.target.value.replace(/^@/, ''))}
-              placeholder="handle (without @)"
-              className="flex-1 bg-transparent text-xs outline-none min-w-0"
-              style={{ color: 'var(--text-primary)' }}
-            />
+        {/* ── Instagram Handle — only when Portfolio Access is ON ── */}
+        {portfolioOn && (
+          <div>
+            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'var(--text-faint)' }}>
+              Instagram Handle
+            </label>
+            <div className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
+              style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
+              <InstagramIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#E1306C' }} />
+              <span className="text-sm" style={{ color: 'var(--text-faint)' }}>@</span>
+              <input
+                type="text"
+                value={member.instagram || ''}
+                onChange={(e) => onUpdate(member.id, 'instagram', e.target.value.replace(/^@/, ''))}
+                placeholder="handle (without @)"
+                className="flex-1 bg-transparent text-xs outline-none min-w-0"
+                style={{ color: 'var(--text-primary)' }}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Admin-Only: Portfolio Access toggle */}
+        {/* ── Admin: Portfolio Access toggle ──────────────── */}
         {isAdmin && (
           <div
             className="rounded-xl border px-3.5 py-3 flex items-center justify-between gap-3"
@@ -374,25 +397,25 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
               <div>
                 <p className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>Portfolio Access</p>
                 <p className="text-[10px] leading-tight" style={{ color: 'var(--text-faint)' }}>
-                  Feature this member in the site portfolio
+                  {portfolioOn ? 'Photo & Instagram unlocked' : 'Enable photo & social fields'}
                 </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => onUpdate(member.id, 'portfolioAccess', !member.portfolioAccess)}
+              onClick={() => onUpdate(member.id, 'portfolioAccess', !portfolioOn)}
               className="relative rounded-full transition-all duration-200 flex-shrink-0"
-              style={{ background: member.portfolioAccess ? 'var(--gold)' : 'var(--border)', width: '40px', height: '22px' }}
+              style={{ background: portfolioOn ? 'var(--gold)' : 'var(--border)', width: '40px', height: '22px' }}
             >
               <span
                 className="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-                style={{ left: member.portfolioAccess ? '20px' : '3px' }}
+                style={{ left: portfolioOn ? '20px' : '3px' }}
               />
             </button>
           </div>
         )}
 
-        {/* Divider */}
+        {/* ── Divider ─────────────────────────────────────── */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
           <div className="flex items-center gap-1.5">
@@ -403,7 +426,7 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
           <div className="flex-1 h-px" style={{ background: 'var(--border-sub)' }} />
         </div>
 
-        {/* Internal Contact */}
+        {/* ── Internal Contact ─────────────────────────────── */}
         <div>
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>Internal Contact</p>
           <div className="grid grid-cols-2 gap-2.5 mb-2">
@@ -424,6 +447,7 @@ function MemberCard({ member, index, businessType, accent, onUpdate, onDelete, i
           </div>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-faint)' }}>Used for individual tech support and portfolio setup.</p>
         </div>
+
       </div>
     </div>
   );
@@ -444,7 +468,10 @@ export default function Step5Staff({ onNext, onBack, data, setData, isAdmin }) {
     ? ['Barber', 'Apprentice Barber', 'Master Barber', 'Shop Manager']
     : ['Stylist', 'Colorist', 'Aesthetician', 'Nail Technician', 'Salon Manager'];
 
-  const toggleRole = (role) => setHiring({ ...hiring, roles: hiring.roles.includes(role) ? hiring.roles.filter((r) => r !== role) : [...hiring.roles, role] });
+  const toggleRole = (role) => setHiring({
+    ...hiring,
+    roles: hiring.roles.includes(role) ? hiring.roles.filter((r) => r !== role) : [...hiring.roles, role],
+  });
 
   const addMember = () => setStaff([...staff, {
     id: nextMemberId++,
@@ -456,7 +483,6 @@ export default function Step5Staff({ onNext, onBack, data, setData, isAdmin }) {
     portfolioAccess: false,
   }]);
 
-  // Accept a single field+value OR a patch object so multiple fields can update atomically
   const updateMember = (id, fieldOrPatch, value) => {
     const patch = typeof fieldOrPatch === 'object' ? fieldOrPatch : { [fieldOrPatch]: value };
     setData((prev) => {
@@ -464,6 +490,7 @@ export default function Step5Staff({ onNext, onBack, data, setData, isAdmin }) {
       return { ...prev, staff: members };
     });
   };
+
   const deleteMember = (id) => setStaff(staff.filter((m) => m.id !== id));
 
   // Continue blocked if any member's bio exceeds limit AND user is not admin
