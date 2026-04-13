@@ -296,8 +296,11 @@ function ImportDock({ onImportSuccess }) {
       await onImportSuccess();
     } catch (err) {
       const msg = err?.message || String(err);
-      if (msg.includes('row-level security')) {
-        setError('RLS policy blocked the insert. Ask your Supabase admin to allow anon inserts on the posts table.');
+      if (msg.includes('row-level security') || msg.includes('42501')) {
+        setError(
+          'INSERT blocked by Row-Level Security. In your Supabase dashboard → Authentication → Policies → posts table, add a policy: ' +
+          'CREATE POLICY "allow_anon_insert" ON posts FOR INSERT TO anon WITH CHECK (true);'
+        );
       } else {
         setError(`Database error: ${msg}`);
       }
@@ -399,15 +402,54 @@ function ImportDock({ onImportSuccess }) {
 
         {/* Feedback */}
         {error && (
-          <div className="flex items-start gap-2 text-xs text-red-500">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+          <div
+            className="rounded-xl overflow-hidden text-xs"
+            style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)' }}
+          >
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: 'rgba(239,68,68,0.15)', color: '#dc2626' }}>
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-bold">Insert Failed</span>
+            </div>
+            {error.includes('CREATE POLICY') ? (
+              <div className="px-4 py-3 flex flex-col gap-2">
+                <p style={{ color: '#dc2626' }}>INSERT blocked by Row-Level Security on the <code className="font-mono bg-red-50 px-1 rounded">posts</code> table.</p>
+                <p className="font-semibold" style={{ color: '#7f1d1d' }}>Run this in your Supabase SQL Editor:</p>
+                <pre
+                  className="rounded-lg px-3 py-2 text-[10px] font-mono leading-relaxed overflow-x-auto"
+                  style={{ background: '#1e1e2e', color: '#cdd6f4' }}
+                >
+{`CREATE POLICY "allow_anon_insert"
+  ON public.posts
+  FOR INSERT
+  TO anon
+  WITH CHECK (true);`}
+                </pre>
+                <p className="text-[10px]" style={{ color: '#b45309' }}>
+                  Dashboard → Table Editor → posts → RLS → New Policy → For full customization
+                </p>
+              </div>
+            ) : (
+              <p className="px-4 py-3 leading-relaxed" style={{ color: '#dc2626' }}>{error}</p>
+            )}
           </div>
         )}
         {success && (
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: '#4ade80' }}>
-            <Check className="w-3.5 h-3.5 flex-shrink-0" />
-            {success}
+          <div
+            className="flex items-center gap-3 rounded-xl px-4 py-3.5"
+            style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)' }}
+          >
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(74,222,128,0.15)' }}
+            >
+              <Check className="w-4 h-4" style={{ color: '#4ade80' }} />
+            </div>
+            <div>
+              <p className="text-xs font-bold" style={{ color: '#4ade80' }}>{success}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: '#86efac' }}>
+                Post Manager has been refreshed with the latest data from Supabase.
+              </p>
+            </div>
           </div>
         )}
 
