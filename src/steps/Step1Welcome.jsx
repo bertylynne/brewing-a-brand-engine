@@ -143,30 +143,36 @@ function ProjectLoader({ onLoad }) {
   const [success, setSuccess] = useState(false);
   const inputRef = useRef();
 
-  const handleLoad = async (e) => {
-    e.preventDefault();
-    if (!bizId.trim()) return;
+  const attemptLoad = async (id) => {
+    const trimmed = (id || '').trim();
+    if (!trimmed) return;
     setLoading(true);
     setError(null);
+    setSuccess(false);
     try {
-      const projectData = await loadProject(bizId);
+      const projectData = await loadProject(trimmed);
       setSuccess(true);
+      // Short green-flash then hand off to parent (which shows the toast)
       setTimeout(() => {
         onLoad(projectData);
         setOpen(false);
         setSuccess(false);
         setBizId('');
-      }, 700);
+      }, 600);
     } catch (err) {
       setError(err.message);
       setLoading(false);
     }
   };
 
+  const handleSubmit = (e) => { e.preventDefault(); attemptLoad(bizId); };
+  // Fetch on blur if the field has a value and hasn't already loaded
+  const handleBlur  = () => { if (bizId.trim() && !loading && !success) attemptLoad(bizId); };
+
   return (
     <div className="w-full max-w-md animate-fade-up">
       <button
-        onClick={() => { setOpen((o) => !o); setError(null); setBizId(''); }}
+        onClick={() => { setOpen((o) => !o); setError(null); setBizId(''); setSuccess(false); }}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all duration-200 text-left"
         style={
           open
@@ -192,32 +198,39 @@ function ProjectLoader({ onLoad }) {
       {open && (
         <div className="mt-2 rounded-xl border overflow-hidden animate-fade-up" style={{ borderColor: 'var(--border)', background: 'var(--bg-raised)' }}>
           <div className="px-4 pt-4 pb-4">
-            <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
               Business ID
             </p>
-            <form onSubmit={handleLoad} className="flex flex-col gap-3">
+            <p className="text-[10px] mb-3" style={{ color: 'var(--text-faint)' }}>
+              Press Enter or tab away to fetch automatically
+            </p>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div
                 className="flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-all duration-200"
                 style={{
                   background: 'var(--bg-surface)',
-                  borderColor: error ? 'rgba(239,68,68,0.5)' : 'var(--border)',
+                  borderColor: error   ? 'rgba(239,68,68,0.5)'
+                             : success ? 'rgba(74,222,128,0.5)'
+                             : 'var(--border)',
                 }}
               >
-                <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+                <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: success ? '#4ade80' : 'var(--text-faint)' }} />
                 <input
                   ref={inputRef}
                   type="text"
                   value={bizId}
-                  onChange={(e) => { setBizId(e.target.value); setError(null); }}
+                  onChange={(e) => { setBizId(e.target.value); setError(null); setSuccess(false); }}
+                  onBlur={handleBlur}
                   placeholder="e.g. pops-barbershop"
                   autoFocus
                   autoCapitalize="none"
                   autoComplete="off"
                   spellCheck={false}
-                  className="flex-1 bg-transparent text-sm outline-none font-mono"
+                  disabled={loading || success}
+                  className="flex-1 bg-transparent text-sm outline-none font-mono disabled:opacity-60"
                   style={{ color: 'var(--text-primary)' }}
                 />
-                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: 'var(--text-faint)' }} />}
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: '#63b3ed' }} />}
                 {success && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#4ade80' }} />}
               </div>
 
@@ -230,20 +243,19 @@ function ProjectLoader({ onLoad }) {
 
               <button
                 type="submit"
-                disabled={!bizId.trim() || loading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: bizId.trim() && !loading ? '#63b3ed' : 'var(--bg-surface)' }}
+                disabled={!bizId.trim() || loading || success}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: success ? 'rgba(74,222,128,0.15)' : bizId.trim() && !loading ? '#63b3ed' : 'var(--bg-surface)',
+                  color:      success ? '#4ade80' : '#fff',
+                }}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Loading Project…
-                  </>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading Project…</>
+                ) : success ? (
+                  <><CheckCircle2 className="w-3.5 h-3.5" /> Project Found — Loading…</>
                 ) : (
-                  <>
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    Load Project
-                  </>
+                  <><FolderOpen className="w-3.5 h-3.5" /> Load Project</>
                 )}
               </button>
             </form>
