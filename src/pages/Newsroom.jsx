@@ -401,7 +401,7 @@ function PostRow({ post, onUpdate, onSaveUrl }) {
         {/* Hero thumbnail */}
         <HeroCell post={post} onHeroUpload={onSaveUrl} />
 
-        {/* Title + Date */}
+        {/* Title + Date + Client */}
         <div className="flex-1 min-w-0">
           <p
             className="text-sm font-bold leading-tight truncate"
@@ -409,14 +409,31 @@ function PostRow({ post, onUpdate, onSaveUrl }) {
           >
             {post.title}
           </p>
-          <p className="text-[10px] mt-0.5 font-medium" style={{ color: SLATE_MUTED }}>
-            {fmtDate(post.date)}
-            {!post.featured_image && (
-              <span className="ml-2 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
-                · No hero
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <p className="text-[10px] font-medium" style={{ color: SLATE_MUTED }}>
+              {fmtDate(post.date)}
+              {!post.featured_image && (
+                <span className="ml-2 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
+                  · No hero
+                </span>
+              )}
+            </p>
+            {post.client_name ? (
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: `${BRASS}18`, color: BRASS_DIM, border: `1px solid ${BRASS}35` }}
+              >
+                {post.client_name}
+              </span>
+            ) : (
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded-full"
+                style={{ background: PARCHMENT2, color: SLATE_FAINT, border: `1px solid ${BORDER}` }}
+              >
+                No client
               </span>
             )}
-          </p>
+          </div>
         </div>
 
         {/* Industry tag */}
@@ -986,13 +1003,25 @@ function CreatePostForm({ onSuccess, onCancel }) {
   const [date,        setDate]        = useState(today);
   const [industryTag, setIndustryTag] = useState('');
   const [status,      setStatus]      = useState('Published');
+  const [clientId,    setClientId]    = useState('');
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState(null);
+
+  // Fetch clients list on mount
+  const [clients,      setClients]      = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      const { data } = await _get('clients?select=id,name&order=name.asc');
+      setClients(data || []);
+      setClientsLoading(false);
+    })();
+  }, []);
 
   const resetForm = () => {
     setTitle(''); setContent(''); setExcerpt('');
     setDate(today); setIndustryTag(''); setStatus('Published');
-    setError(null);
+    setClientId(''); setError(null);
   };
 
   const handleSubmit = async (e) => {
@@ -1003,18 +1032,15 @@ function CreatePostForm({ onSuccess, onCancel }) {
 
     const payload = {
       title:        title.trim(),
-      content:      content.trim()      || null,
-      excerpt:      excerpt.trim()      || null,
-      date:         date                || new Date().toISOString().slice(0, 10),
-      industry_tag: industryTag         || null,
+      content:      content.trim()  || null,
+      excerpt:      excerpt.trim()  || null,
+      date:         date            || new Date().toISOString().slice(0, 10),
+      industry_tag: industryTag     || null,
       status:       status,
+      client_id:    clientId        || null,
     };
 
-    const { data, error: insertErr } = await db
-      .from('posts')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error: insertErr } = await _post('posts', payload);
 
     if (insertErr) {
       setError(`[posts] code:${insertErr.code ?? 'ERR'} · ${insertErr.message}`);
@@ -1098,6 +1124,29 @@ function CreatePostForm({ onSuccess, onCancel }) {
                 </label>
                 <IndustryDropdown value={industryTag} onChange={setIndustryTag} />
               </div>
+            </div>
+
+            {/* Assign to Client */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: SLATE_MUTED }}>
+                Assign to Client <span style={{ color: SLATE_FAINT }}>(optional)</span>
+              </label>
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                disabled={clientsLoading}
+                className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors appearance-none"
+                style={{ background: PARCHMENT, borderColor: `${BRASS}30`, color: clientId ? SLATE : SLATE_FAINT }}
+                onFocus={(e) => { e.target.style.borderColor = `${BRASS}70`; }}
+                onBlur={(e)  => { e.target.style.borderColor = `${BRASS}30`; }}
+              >
+                <option value="">
+                  {clientsLoading ? 'Loading clients…' : clients.length === 0 ? 'No clients found' : '— No client —'}
+                </option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
             </div>
 
             {/* Status */}
@@ -1189,6 +1238,7 @@ function CreatePostForm({ onSuccess, onCancel }) {
   date:         /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0,10),
   industry_tag: industryTag     || null,
   status,
+  client_id:    clientId        || null,
 }, null, 2)}
               </pre>
             </div>
@@ -1542,14 +1592,15 @@ function DbAudit({ localPosts }) {
 function dbRowToPost(row) {
   return {
     id:             row.id,
-    title:          row.title                          || row.name || 'Untitled',
-    date:           row.date                           || row.published_at?.slice(0, 10) || row.created_at?.slice(0, 10) || '',
-    industry:       row.industry_tag                   || row.industry || '',
-    // Accept any capitalisation of status; default to 'Published' so posts show
-    status:         row.status                         || 'Published',
-    content:        row.content                        || row.body || null,
-    excerpt:        row.excerpt                        || row.summary || null,
-    featured_image: row.featured_image                 || row.hero_image || row.image_url || null,
+    title:          row.title          || row.name || 'Untitled',
+    date:           row.date           || row.published_at?.slice(0, 10) || row.created_at?.slice(0, 10) || '',
+    industry:       row.industry_tag   || row.industry || '',
+    status:         row.status         || 'Published',
+    content:        row.content        || row.body || null,
+    excerpt:        row.excerpt        || row.summary || null,
+    featured_image: row.featured_image || row.hero_image || row.image_url || null,
+    client_id:      row.client_id      || null,
+    client_name:    row.clients?.name  || row.client_name || null,
   };
 }
 
@@ -1595,7 +1646,7 @@ export default function Newsroom() {
     setDbLoading(true);
     setDbError(null);
 
-    const { data, error } = await _get('posts?select=*&order=id.desc');
+    const { data, error } = await _get('posts?select=*,clients(id,name)&order=id.desc');
 
     if (error) {
       const diagnosis =
