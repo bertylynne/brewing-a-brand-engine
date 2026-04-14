@@ -289,28 +289,19 @@ function HeroCell({ post, onHeroUpload }) {
   );
 }
 
-// ── Link-from-Library modal ───────────────────────────────────────────────────
-function LinkFromLibraryModal({ post, onClose, onLinked }) {
-  const [url,     setUrl]     = useState('');
-  const [saving,  setSaving]  = useState(false);
-  const [saveErr, setSaveErr] = useState(null);
-  const inputRef = useRef(null);
+// ── Post row ──────────────────────────────────────────────────────────────────
+function PostRow({ post, onUpdate, onSaveUrl }) {
+  const [libUrl,   setLibUrl]   = useState('');
+  const [saving,   setSaving]   = useState(false);
+  const [saved,    setSaved]    = useState(false);
+  const [saveErr,  setSaveErr]  = useState(null);
 
-  // Auto-focus input when modal opens
-  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 60); }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  const handleSave = async () => {
-    const trimmed = url.trim();
+  const handleSaveLink = async () => {
+    const trimmed = libUrl.trim();
     if (!trimmed) return;
     setSaving(true);
     setSaveErr(null);
+    setSaved(false);
 
     try {
       const { error } = await db
@@ -327,9 +318,11 @@ function LinkFromLibraryModal({ post, onClose, onLinked }) {
           status:  error.status  ?? null,
         });
       } else {
-        // Success — pass URL up so parent can refresh + update thumbnail, then close
-        await onLinked(post.id, trimmed);
-        onClose();
+        setSaved(true);
+        setLibUrl('');
+        setTimeout(() => setSaved(false), 3000);
+        // Optimistic update + full list refresh
+        await onSaveUrl(post.id, trimmed);
       }
     } catch (err) {
       setSaveErr({ code: 'JS_ERR', message: String(err), table: 'posts', status: null });
@@ -339,140 +332,14 @@ function LinkFromLibraryModal({ post, onClose, onLinked }) {
   };
 
   return (
-    /* Backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(30,27,21,0.55)', backdropFilter: 'blur(3px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="flex flex-col gap-0 rounded-xl border overflow-hidden transition-all duration-150"
+      style={{ background: WHITE, borderColor: BORDER, boxShadow: '0 1px 3px rgba(44,62,80,0.06)' }}
     >
-      {/* Card */}
-      <div
-        className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 flex flex-col gap-4"
-        style={{ background: WHITE, border: `1px solid ${BORDER}` }}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-wider" style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}>
-              Link from Library
-            </h3>
-            <p className="text-[11px] mt-0.5 truncate" style={{ color: SLATE_MUTED, maxWidth: '300px' }}>
-              {post.title}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors flex-shrink-0"
-            style={{ color: SLATE_FAINT }}
-            onMouseOver={(e) => e.currentTarget.style.background = PARCHMENT2}
-            onMouseOut={(e)  => e.currentTarget.style.background = 'transparent'}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Current image preview */}
-        {post.featured_image && (
-          <div className="rounded-xl overflow-hidden border" style={{ borderColor: BORDER, height: '100px' }}>
-            <img src={post.featured_image} alt="current" className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* Instructions */}
-        <p className="text-[11px] leading-relaxed" style={{ color: SLATE_MUTED }}>
-          Go to your <strong style={{ color: SLATE }}>Image Library</strong>, copy the public URL of the photo, then paste it below.
-        </p>
-
-        {/* URL input */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider" style={{ color: SLATE_FAINT }}>
-            Image URL
-          </label>
-          <input
-            ref={inputRef}
-            type="url"
-            value={url}
-            onChange={(e) => { setUrl(e.target.value); setSaveErr(null); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
-            placeholder="https://…supabase.co/storage/v1/object/public/…"
-            className="w-full rounded-xl border px-3 py-2.5 text-[11px] outline-none transition-colors"
-            style={{
-              background:  PARCHMENT,
-              borderColor: saveErr ? 'rgba(239,68,68,0.5)' : `${SIGNAL}30`,
-              color:       SLATE,
-              fontFamily:  "'JetBrains Mono','Courier New',monospace",
-            }}
-            onFocus={(e)  => { e.target.style.borderColor = saveErr ? 'rgba(239,68,68,0.5)' : `${SIGNAL}70`; }}
-            onBlur={(e)   => { e.target.style.borderColor = saveErr ? 'rgba(239,68,68,0.5)' : `${SIGNAL}30`; }}
-          />
-          {/* URL preview thumbnail */}
-          {url.trim() && !saveErr && (
-            <img
-              src={url.trim()}
-              alt="preview"
-              className="mt-1 rounded-lg object-cover border"
-              style={{ height: '80px', width: '100%', borderColor: BORDER }}
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              onLoad={(e)  => { e.currentTarget.style.display = 'block'; }}
-            />
-          )}
-        </div>
-
-        {/* Error */}
-        {saveErr && (
-          <div
-            className="rounded-xl px-3 py-2.5 text-[10px] font-mono"
-            style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)', color: '#dc2626' }}
-          >
-            <p className="font-bold mb-0.5">Write failed on table: <span className="font-black">{saveErr.table}</span></p>
-            <p>code: {saveErr.code}</p>
-            <p>status: {saveErr.status ?? '—'}</p>
-            <p className="break-all">message: {saveErr.message}</p>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 justify-end pt-1">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold transition-colors"
-            style={{ background: PARCHMENT2, color: SLATE_MUTED, border: `1px solid ${BORDER}` }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!url.trim() || saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: BRASS, color: WHITE, border: `1px solid ${BRASS_DIM}` }}
-          >
-            {saving
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
-              : <><CheckCheck className="w-3.5 h-3.5" /> Save Link</>}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Post row ──────────────────────────────────────────────────────────────────
-function PostRow({ post, onUpdate, onHeroUpload, onSaveUrl }) {
-  const [showLinkModal, setShowLinkModal] = useState(false);
-
-  const handleLinked = async (postId, url) => {
-    // Optimistic thumbnail update + refresh
-    await onSaveUrl(postId, url);
-  };
-
-  return (
-    <>
-      <div
-        className="flex items-center gap-4 px-5 py-3 rounded-xl border transition-all duration-150"
-        style={{ background: WHITE, borderColor: BORDER, boxShadow: '0 1px 3px rgba(44,62,80,0.06)' }}
-      >
-        {/* Hero thumbnail + upload button */}
-        <HeroCell post={post} onHeroUpload={onHeroUpload} />
+      {/* ── Main info row ── */}
+      <div className="flex items-center gap-4 px-5 py-3">
+        {/* Hero thumbnail */}
+        <HeroCell post={post} onHeroUpload={onSaveUrl} />
 
         {/* Title + Date */}
         <div className="flex-1 min-w-0">
@@ -508,25 +375,7 @@ function PostRow({ post, onUpdate, onHeroUpload, onSaveUrl }) {
           />
         </div>
 
-        {/* Link from Library button */}
-        <button
-          type="button"
-          onClick={() => setShowLinkModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex-shrink-0"
-          style={{
-            background:  post.featured_image ? `${SIGNAL}12` : `${BRASS}15`,
-            color:       post.featured_image ? SIGNAL_DIM    : BRASS_DIM,
-            border:      `1px solid ${post.featured_image ? `${SIGNAL}30` : `${BRASS}35`}`,
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.opacity = '0.75'; }}
-          onMouseOut={(e)  => { e.currentTarget.style.opacity = '1'; }}
-          title="Link a photo from your Image Library"
-        >
-          <Link2 className="w-3 h-3" />
-          Link from Library
-        </button>
-
-        {/* Brass dot — published indicator */}
+        {/* Published dot */}
         <div
           className="w-2 h-2 rounded-full flex-shrink-0"
           style={{ background: post.status === 'Published' ? BRASS : PARCHMENT2 }}
@@ -534,15 +383,68 @@ function PostRow({ post, onUpdate, onHeroUpload, onSaveUrl }) {
         />
       </div>
 
-      {/* Modal */}
-      {showLinkModal && (
-        <LinkFromLibraryModal
-          post={post}
-          onClose={() => setShowLinkModal(false)}
-          onLinked={handleLinked}
-        />
-      )}
-    </>
+      {/* ── Library Image URL row ── */}
+      <div
+        className="flex flex-col gap-1.5 px-5 py-2.5"
+        style={{ borderTop: `1px solid ${BORDER}`, background: PARCHMENT }}
+      >
+        <div className="flex items-center gap-2">
+          {/* Label */}
+          <span
+            className="text-[9px] font-black uppercase tracking-widest flex-shrink-0"
+            style={{ color: SLATE_FAINT, minWidth: '108px' }}
+          >
+            Library Image URL
+          </span>
+
+          {/* Input */}
+          <input
+            type="url"
+            value={libUrl}
+            onChange={(e) => { setLibUrl(e.target.value); setSaveErr(null); setSaved(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveLink(); }}
+            placeholder="Paste URL from Image Library…"
+            className="flex-1 rounded-lg border px-2.5 py-1.5 text-[11px] outline-none transition-colors min-w-0"
+            style={{
+              background:  WHITE,
+              borderColor: saveErr ? 'rgba(239,68,68,0.45)' : saved ? 'rgba(74,222,128,0.45)' : `${SIGNAL}25`,
+              color:       SLATE,
+              fontFamily:  "'JetBrains Mono','Courier New',monospace",
+            }}
+            onFocus={(e) => { e.target.style.borderColor = saveErr ? 'rgba(239,68,68,0.5)' : `${SIGNAL}60`; }}
+            onBlur={(e)  => { e.target.style.borderColor = saveErr ? 'rgba(239,68,68,0.45)' : saved ? 'rgba(74,222,128,0.45)' : `${SIGNAL}25`; }}
+          />
+
+          {/* Save Link button */}
+          <button
+            type="button"
+            disabled={!libUrl.trim() || saving}
+            onClick={handleSaveLink}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: saved    ? 'rgba(74,222,128,0.12)'
+                         : saveErr ? 'rgba(239,68,68,0.10)'
+                         : `${BRASS}18`,
+              color:      saved    ? '#15803d'
+                         : saveErr ? '#dc2626'
+                         : BRASS_DIM,
+              border: `1px solid ${saved ? 'rgba(74,222,128,0.4)' : saveErr ? 'rgba(239,68,68,0.35)' : `${BRASS}40`}`,
+            }}
+          >
+            {saving  ? <><Loader2   className="w-3 h-3 animate-spin" /> Saving…</>
+            : saved   ? <><CheckCheck className="w-3 h-3" /> Saved!</>
+            :            <><Link2     className="w-3 h-3" /> Save Link</>}
+          </button>
+        </div>
+
+        {/* Inline error */}
+        {saveErr && (
+          <p className="text-[9px] font-mono px-1 leading-tight" style={{ color: '#dc2626' }}>
+            ✗ table:<strong>{saveErr.table}</strong> · code:{saveErr.code} · status:{saveErr.status ?? '—'} · {saveErr.message}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -2063,7 +1965,7 @@ export default function Newsroom() {
                 ) : visible.length > 0 ? (
                   <div className="flex flex-col gap-2">
                     {visible.map((post) => (
-                      <PostRow key={post.id} post={post} onUpdate={updatePost} onHeroUpload={handleHeroUpload} onSaveUrl={handleHeroUpload} />
+                      <PostRow key={post.id} post={post} onUpdate={updatePost} onSaveUrl={handleHeroUpload} />
                     ))}
                   </div>
                 ) : (
