@@ -376,48 +376,8 @@ function ImportDock({ onImportSuccess }) {
     }
   };
 
-  // Save previewed rows to Supabase posts table
-  const handleSave = async () => {
-    if (!preview?.length) return;
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
-
-    // Build clean payload — only the six allowed columns, no id or extras
-    const payload = preview.map(({ title, content, excerpt, date, industry_tag, status }) => ({
-      title, content, excerpt, date, industry_tag, status,
-    }));
-
-    console.log('[ImportDock] Inserting payload →', payload);
-
-    const { data, error: dbErr } = await db
-      .from('posts')
-      .insert(payload)
-      .select();
-
-    console.log('[ImportDock] Supabase response → data:', data, '| error:', dbErr);
-
-    if (dbErr) {
-      console.error('[ImportDock] Insert failed. Code:', dbErr.code, '| Message:', dbErr.message);
-      const msg = dbErr.message || '';
-      const isRls = dbErr.code === '42501' || msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('policy');
-      // Clear stale preview so the user starts fresh on retry
-      setPreview(null);
-      setRaw('');
-      setError(isRls ? 'rls' : `${dbErr.code ?? 'DB error'}: ${msg}`);
-      setSaving(false);
-      return;
-    }
-
-    console.log('[ImportDock] ✅ Insert succeeded. Rows saved:', data?.length ?? payload.length);
-    setSuccess(`${payload.length} post${payload.length !== 1 ? 's' : ''} saved to database.`);
-    setRaw('');
-    setPreview(null);
-    setSaving(false);
-
-    // Reload Post Manager from DB so the new rows are immediately visible
-    await onImportSuccess();
-  };
+  // INSERT disabled — this dock is parse/preview only until DB write permissions are confirmed
+  // const handleSave = () => {};
 
   return (
     <div
@@ -563,12 +523,11 @@ function ImportDock({ onImportSuccess }) {
           </div>
         )}
 
-        {/* Action buttons */}
+        {/* Parse button — preview only, no DB write */}
         <div className="flex gap-3">
-          {/* Step 1: Parse */}
           <button
             onClick={handleParse}
-            disabled={!raw.trim() || saving}
+            disabled={!raw.trim()}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background:  preview ? PARCHMENT2 : SIGNAL,
@@ -580,23 +539,6 @@ function ImportDock({ onImportSuccess }) {
             <Code2 className="w-4 h-4" />
             {preview ? 'Re-Parse' : 'Parse Data'}
           </button>
-
-          {/* Step 2: Save to DB (only shown after parse) */}
-          {preview && (
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm uppercase tracking-wider text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
-              style={{ background: BRASS, boxShadow: `0 4px 14px ${BRASS}40` }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = BRASS_DIM; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = BRASS; }}
-            >
-              {saving
-                ? <RefreshCw className="w-4 h-4 animate-spin" />
-                : <Download className="w-4 h-4" />}
-              {saving ? 'Saving…' : `Save ${preview.length} to DB`}
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -877,48 +819,10 @@ function CreatePostForm({ onSuccess, onCancel }) {
     setError(null);
   };
 
-  const handleSubmit = async (e) => {
+  // INSERT disabled — form is preview only until DB write permissions confirmed
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim()) { setError('Title is required.'); return; }
-
-    // ── Hard-validated ISO date ────────────────────────────────────────────────
-    const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
-      ? date
-      : new Date().toISOString().slice(0, 10);
-
-    // ── Exact 6-column payload — absolutely NO id field ───────────────────────
-    const payload = {
-      title:        title.trim(),
-      content:      content.trim()  || null,
-      excerpt:      excerpt.trim()  || null,
-      date:         isoDate,
-      industry_tag: industryTag     || null,
-      status:       status,          // 'Published' | 'Draft'
-    };
-
-    console.log('[CreatePost] payload (no id):', JSON.stringify(payload));
-    setSaving(true);
-    setError(null);
-
-    // ── Use fresh anon client so RLS sees the correct anon role ───────────────
-    const { data, error: dbErr } = await db
-      .from('posts')
-      .insert([payload])
-      .select();
-
-    console.log('[CreatePost] response → data:', data, '| error:', dbErr);
-
-    if (dbErr) {
-      console.error('[CreatePost] insert failed:', dbErr.code, dbErr.message, dbErr.details);
-      setError(`${dbErr.code ?? 'DB Error'}: ${dbErr.message}`);
-      setSaving(false);
-      return;
-    }
-
-    console.log('[CreatePost] ✅ inserted id:', data?.[0]?.id);
-    resetForm();
-    setSaving(false);
-    await onSuccess(data?.[0]); // pass new row → parent fires toast + refreshes
+    setError('DB writes are temporarily disabled. Use the Supabase dashboard to confirm RLS is off, then re-enable inserts.');
   };
 
   const published = status === 'Published';
@@ -1487,8 +1391,17 @@ export default function Newsroom() {
     const { data, error } = result;
 
     if (error) {
-      // Full raw Supabase error — rendered verbatim on screen for debugging
+      // Classify the error before displaying
+      const isTableMissing =
+        error.code === '42P01' ||           // PostgreSQL: undefined_table
+        error.code === 'PGRST106' ||        // PostgREST: schema cache miss
+        (error.message || '').toLowerCase().includes('does not exist') ||
+        (error.message || '').toLowerCase().includes('not found');
+
       const raw = {
+        diagnosis: isTableMissing
+          ? 'TABLE NOT FOUND — the "posts" table does not exist in the public schema. Create it in Supabase → Table Editor.'
+          : 'SELECT failed — see fields below.',
         code:    error.code,
         message: error.message,
         details: error.details,
