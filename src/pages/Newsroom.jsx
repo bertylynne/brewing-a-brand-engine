@@ -481,8 +481,28 @@ function ImportDock({ onImportSuccess }) {
     }
   };
 
-  // INSERT disabled — this dock is parse/preview only until DB write permissions are confirmed
-  // const handleSave = () => {};
+  const handleSave = async () => {
+    if (!preview || preview.length === 0) return;
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    const { error: insertErr } = await db
+      .from('posts')
+      .insert(preview);
+
+    if (insertErr) {
+      setError(`[posts] code:${insertErr.code ?? 'ERR'} · ${insertErr.message}`);
+      setSaving(false);
+      return;
+    }
+
+    setSuccess(`${preview.length} post${preview.length !== 1 ? 's' : ''} saved to Supabase.`);
+    setRaw('');
+    setPreview(null);
+    setSaving(false);
+    onImportSuccess?.();
+  };
 
   return (
     <div
@@ -575,37 +595,17 @@ function ImportDock({ onImportSuccess }) {
           </div>
         )}
 
-        {/* Feedback */}
+        {/* Error */}
         {error && (
           <div
-            className="rounded-xl overflow-hidden text-xs"
-            style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)' }}
+            className="rounded-xl px-4 py-3 text-xs font-mono"
+            style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)', color: '#dc2626' }}
           >
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: 'rgba(239,68,68,0.15)', color: '#dc2626' }}>
+            <div className="flex items-center gap-2 mb-1">
               <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-bold">{error === 'rls' ? 'Row-Level Security is blocking the insert' : 'Insert Failed'}</span>
+              <span className="font-bold">Save failed</span>
             </div>
-            {error === 'rls' ? (
-              <div className="px-4 py-3 flex flex-col gap-2.5">
-                <p style={{ color: '#991b1b' }}>
-                  The <code className="font-mono bg-red-50 border border-red-200 px-1 rounded">posts</code> table has RLS enabled with no INSERT policy for the <code className="font-mono bg-red-50 border border-red-200 px-1 rounded">anon</code> role.
-                </p>
-                <p className="font-bold" style={{ color: '#7f1d1d' }}>Fix: run this in your Supabase SQL Editor</p>
-                <pre
-                  className="rounded-lg px-3 py-2.5 text-[11px] font-mono leading-relaxed overflow-x-auto select-all"
-                  style={{ background: '#1e1e2e', color: '#cdd6f4', userSelect: 'all' }}
-                >{`CREATE POLICY "allow_anon_insert"
-  ON public.posts
-  FOR INSERT
-  TO anon
-  WITH CHECK (true);`}</pre>
-                <p style={{ color: '#b45309' }}>
-                  Then click <strong>Save to DB</strong> again — the insert will go through immediately.
-                </p>
-              </div>
-            ) : (
-              <p className="px-4 py-3 leading-relaxed font-mono" style={{ color: '#dc2626' }}>{error}</p>
-            )}
+            <p className="break-all">{error}</p>
           </div>
         )}
         {success && (
@@ -628,7 +628,7 @@ function ImportDock({ onImportSuccess }) {
           </div>
         )}
 
-        {/* Parse button — preview only, no DB write */}
+        {/* Buttons */}
         <div className="flex gap-3">
           <button
             onClick={handleParse}
@@ -644,6 +644,17 @@ function ImportDock({ onImportSuccess }) {
             <Code2 className="w-4 h-4" />
             {preview ? 'Re-Parse' : 'Parse Data'}
           </button>
+          {preview && preview.length > 0 && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: BRASS, color: WHITE, boxShadow: `0 4px 14px ${BRASS}40` }}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+              {saving ? 'Saving…' : `Save ${preview.length} to DB`}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -924,10 +935,36 @@ function CreatePostForm({ onSuccess, onCancel }) {
     setError(null);
   };
 
-  // INSERT disabled — form is preview only until DB write permissions confirmed
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('DB writes are temporarily disabled. Use the Supabase dashboard to confirm RLS is off, then re-enable inserts.');
+    if (!title.trim()) { setError('Title is required.'); return; }
+    setSaving(true);
+    setError(null);
+
+    const payload = {
+      title:        title.trim(),
+      content:      content.trim()      || null,
+      excerpt:      excerpt.trim()      || null,
+      date:         date                || new Date().toISOString().slice(0, 10),
+      industry_tag: industryTag         || null,
+      status:       status,
+    };
+
+    const { data, error: insertErr } = await db
+      .from('posts')
+      .insert(payload)
+      .select()
+      .single();
+
+    if (insertErr) {
+      setError(`[posts] code:${insertErr.code ?? 'ERR'} · ${insertErr.message}`);
+      setSaving(false);
+      return;
+    }
+
+    resetForm();
+    setSaving(false);
+    onSuccess?.(data);
   };
 
   const published = status === 'Published';
