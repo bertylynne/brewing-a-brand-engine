@@ -7,17 +7,21 @@ import {
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Single Supabase client for ALL operations — no dual-client confusion.
-// auth options prevent any automatic session-refresh or auth-check requests
-// firing on page load (those phantom requests were triggering the RLS error).
-const anonClient = createClient(
+// ─────────────────────────────────────────────────────────────────────────────
+// NEWSROOM DATABASE CLIENT
+// Complete fresh init — credentials hard-coded, no variable indirection.
+// All three auth options are disabled so this client makes ZERO automatic
+// network requests on page load (no token refresh, no session restore, no
+// URL-param detection). The only requests it makes are ones we explicitly call.
+// ─────────────────────────────────────────────────────────────────────────────
+const db = createClient(
   'https://bjxgqbgjtzbgzdprtepd.supabase.co',
   'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr',
   {
     auth: {
-      persistSession:    false,  // never write to localStorage
-      autoRefreshToken:  false,  // no background token-refresh requests
-      detectSessionInUrl: false, // ignore any ?access_token= in the URL
+      persistSession:     false,
+      autoRefreshToken:   false,
+      detectSessionInUrl: false,
     },
   }
 );
@@ -151,7 +155,7 @@ async function uploadToStorage(file, folder = 'posts') {
   const ext  = file.name.split('.').pop().toLowerCase();
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   console.log('[Storage] Uploading to bucket:', BUCKET, '| path:', path);
-  const { data: uploadData, error: uploadErr } = await anonClient.storage
+  const { data: uploadData, error: uploadErr } = await db.storage
     .from(BUCKET)
     .upload(path, file, { upsert: true, cacheControl: '3600' });
   if (uploadErr) {
@@ -159,7 +163,7 @@ async function uploadToStorage(file, folder = 'posts') {
     throw new Error(uploadErr.message || 'Storage upload failed');
   }
   console.log('[Storage] Upload OK:', uploadData);
-  const { data: urlData } = anonClient.storage.from(BUCKET).getPublicUrl(path);
+  const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(path);
   console.log('[Storage] Public URL:', urlData.publicUrl);
   return urlData.publicUrl;
 }
@@ -386,7 +390,7 @@ function ImportDock({ onImportSuccess }) {
 
     console.log('[ImportDock] Inserting payload →', payload);
 
-    const { data, error: dbErr } = await anonClient
+    const { data, error: dbErr } = await db
       .from('posts')
       .insert(payload)
       .select();
@@ -637,7 +641,7 @@ function ImageLibrary() {
   const loadAssets = useCallback(async () => {
     setLoading(true);
     setFetchErr(null);
-    const { data, error } = await anonClient.storage
+    const { data, error } = await db.storage
       .from(BUCKET)
       .list('library', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
 
@@ -648,7 +652,7 @@ function ImageLibrary() {
       const mapped = (data || [])
         .filter(f => f.name !== '.emptyFolderPlaceholder')
         .map(f => {
-          const { data: urlData } = anonClient.storage.from(BUCKET).getPublicUrl(`library/${f.name}`);
+          const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(`library/${f.name}`);
           return { id: f.id || f.name, name: f.name, remoteUrl: urlData.publicUrl, uploading: false, error: null };
         });
       setAssets(mapped);
@@ -897,7 +901,7 @@ function CreatePostForm({ onSuccess, onCancel }) {
     setError(null);
 
     // ── Use fresh anon client so RLS sees the correct anon role ───────────────
-    const { data, error: dbErr } = await anonClient
+    const { data, error: dbErr } = await db
       .from('posts')
       .insert([payload])
       .select();
@@ -1219,7 +1223,7 @@ function DbAudit({ localPosts }) {
     setError(null);
     try {
       // SELECT only — no insert, no update. Order by id (always exists).
-      const { data, error: e } = await anonClient
+      const { data, error: e } = await db
         .from('posts')
         .select('*')
         .order('id', { ascending: false })
@@ -1459,27 +1463,49 @@ export default function Newsroom() {
   const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
   const clearToast = useCallback(() => setToast(null), []);
 
-  // SELECT-only fetch — no insert, no update, no id sent.
-  // Targets lowercase 'posts' table exclusively.
+  // ── FETCH — the ONLY operation that runs on page load ────────────────────────
+  // Pure SELECT * from 'posts' (hard-coded, lowercase). No insert, no update,
+  // no id field sent. Stores the full raw error object for verbatim display.
   const loadPostsFromDb = useCallback(async () => {
     setDbLoading(true);
-    setDbError(null);   // clear any stale error from a previous attempt
+    setDbError(null);
 
-    const { data, error } = await anonClient
-      .from('posts')    // ← lowercase 'posts' table
-      .select('*')      // ← SELECT * — no column name mismatches possible
-      .order('id', { ascending: false }); // ← order by id, not date (date may be null)
+    let result;
+    try {
+      result = await db
+        .from('posts')          // hard-coded table name — never a variable
+        .select('*')            // SELECT * avoids column-name mismatch errors
+        .order('id', { ascending: false }); // id always exists; date may be null
+    } catch (networkErr) {
+      const raw = { type: 'network', message: String(networkErr) };
+      console.error('[Newsroom] network error:', raw);
+      setDbError(JSON.stringify(raw, null, 2));
+      setDbLoading(false);
+      return;
+    }
+
+    const { data, error } = result;
 
     if (error) {
-      console.error('[Newsroom] loadPostsFromDb error:', JSON.stringify(error));
-      setDbError(`${error.code ? `[${error.code}] ` : ''}${error.message}`);
-    } else {
-      const mapped = (data || []).map(dbRowToPost);
-      console.log('[Newsroom] Loaded', mapped.length, 'rows. IDs:', mapped.map(p => p.id));
-      setPosts(mapped);
+      // Full raw Supabase error — rendered verbatim on screen for debugging
+      const raw = {
+        code:    error.code,
+        message: error.message,
+        details: error.details,
+        hint:    error.hint,
+        status:  error.status,
+      };
+      console.error('[Newsroom] SELECT error (full):', raw);
+      setDbError(JSON.stringify(raw, null, 2));
+      setDbLoading(false);
+      return;
     }
+
+    const mapped = (data || []).map(dbRowToPost);
+    console.log('[Newsroom] ✅ Loaded', mapped.length, 'rows from `posts`. IDs:', mapped.map(p => p.id));
+    setPosts(mapped);
     setDbLoading(false);
-  }, []); // no deps — stable reference, safe to call anywhere
+  }, []);
 
   // On mount: SELECT only — zero inserts triggered here
   useEffect(() => {
@@ -1495,7 +1521,7 @@ export default function Newsroom() {
     // Map local field names → DB column names
     const dbField = field === 'industry' ? 'industry_tag' : field;
     console.log(`[Newsroom] updatePost id=${id} | col=${dbField} | val=${value}`);
-    const { error } = await anonClient
+    const { error } = await db
       .from('posts')
       .update({ [dbField]: value })
       .eq('id', id);
@@ -1520,7 +1546,7 @@ export default function Newsroom() {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: publicUrl } : p));
 
     // ── ② DB UPDATE — no INSERT, targets existing row by id ──────────────────
-    const { data: updatedRows, error: updateErr } = await anonClient
+    const { data: updatedRows, error: updateErr } = await db
       .from('posts')
       .update({ featured_image: publicUrl })
       .eq('id', postId)
@@ -1540,7 +1566,7 @@ export default function Newsroom() {
       console.warn('[Newsroom] UPDATE returned 0 rows — running verification GET…');
 
       // Fetch that specific row back to see its real featured_image value
-      const { data: verifyRow, error: verifyErr } = await anonClient
+      const { data: verifyRow, error: verifyErr } = await db
         .from('posts')
         .select('id, featured_image')
         .eq('id', postId)
@@ -1851,23 +1877,34 @@ export default function Newsroom() {
                     ))}
                   </div>
                 ) : dbError ? (
-                  /* DB error state */
+                  /* DB error state — full JSON error object displayed verbatim */
                   <div
-                    className="rounded-xl px-5 py-5 flex items-start gap-3"
+                    className="rounded-xl overflow-hidden"
                     style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)' }}
                   >
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold" style={{ color: '#dc2626' }}>Could not load posts from database</p>
-                      <p className="text-xs mt-1 font-mono" style={{ color: '#b45309' }}>{dbError}</p>
+                    <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: 'rgba(239,68,68,0.2)' }}>
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#dc2626' }} />
+                      <p className="text-sm font-bold flex-1" style={{ color: '#dc2626' }}>
+                        Supabase SELECT failed — full error below
+                      </p>
                       <button
                         onClick={loadPostsFromDb}
-                        className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                        style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0"
+                        style={{ background: 'rgba(239,68,68,0.12)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}
                       >
                         <RefreshCw className="w-3 h-3" />
                         Retry
                       </button>
+                    </div>
+                    {/* Full raw JSON so the exact error is visible without opening DevTools */}
+                    <pre
+                      className="px-5 py-4 text-xs font-mono leading-relaxed overflow-x-auto select-all whitespace-pre-wrap"
+                      style={{ color: '#b45309', background: '#1e1e2e' }}
+                    >
+                      {dbError}
+                    </pre>
+                    <div className="px-5 py-3 border-t text-[10px]" style={{ borderColor: 'rgba(239,68,68,0.15)', color: '#7f1d1d' }}>
+                      Table: <code className="font-mono">posts</code> · Query: <code className="font-mono">SELECT * ORDER BY id DESC</code> · RLS must be DISABLED in Supabase → Table Editor → posts → RLS
                     </div>
                   </div>
                 ) : visible.length > 0 ? (
