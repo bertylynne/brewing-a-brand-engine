@@ -1468,6 +1468,30 @@ export default function Newsroom() {
   const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
   const clearToast = useCallback(() => setToast(null), []);
 
+  // ── Connection handshake ─────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://bjxgqbgjtzbgzdprtepd.supabase.co';
+  const [handshake, setHandshake] = useState(null); // null | 'success' | 'failure' | 'rls'
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await db
+        .from('posts')
+        .select('id, title')
+        .eq('title', 'CONNECTION_TEST_BEE_IN_HIVE')
+        .limit(1);
+
+      if (error) {
+        const isRls = error.code === '42501' || (error.message || '').toLowerCase().includes('policy');
+        setHandshake(isRls ? 'rls' : 'failure');
+      } else if (data && data.length > 0) {
+        setHandshake('success');
+      } else {
+        setHandshake('failure');
+      }
+    })();
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
   // PAGE LOAD: one operation only — SELECT * FROM posts
   // No insert. No update. No delete. No order clause. No filters.
   const loadPostsFromDb = useCallback(async () => {
@@ -1651,6 +1675,33 @@ export default function Newsroom() {
 
       {/* Main canvas */}
       <main className="flex-1 flex flex-col overflow-hidden">
+
+        {/* ── Handshake banner ── */}
+        {handshake === 'success' && (
+          <div
+            className="flex items-center justify-center gap-3 px-6 py-3 text-sm font-bold tracking-wider text-center flex-shrink-0"
+            style={{ background: 'rgba(74,222,128,0.12)', borderBottom: '1px solid rgba(74,222,128,0.35)', color: '#15803d', fontFamily: "'Montserrat', sans-serif" }}
+          >
+            <CheckCheck className="w-4 h-4 flex-shrink-0" />
+            HANDSHAKE SUCCESSFUL — WE ARE IN THE RIGHT HOUSE.
+          </div>
+        )}
+        {(handshake === 'failure' || handshake === 'rls') && (
+          <div
+            className="flex flex-col items-center justify-center gap-1 px-6 py-3 text-center flex-shrink-0"
+            style={{ background: 'rgba(239,68,68,0.08)', borderBottom: '1px solid rgba(239,68,68,0.3)' }}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#dc2626', fontFamily: "'Montserrat', sans-serif" }}>
+              {handshake === 'rls'
+                ? '✗ RLS ERROR — ROW BLOCKED. WRONG PROJECT OR RLS STILL ENABLED.'
+                : '✗ TEST ROW NOT FOUND — CONNECTED TO WRONG PROJECT OR ROW MISSING.'}
+            </p>
+            <p className="text-[11px] font-mono" style={{ color: '#7f1d1d' }}>
+              Current Supabase URL in code: <span className="font-bold">{SUPABASE_URL}</span>
+            </p>
+          </div>
+        )}
+        {/* ────────────────────── */}
 
         {/* Top bar */}
         <header
