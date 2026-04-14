@@ -6,13 +6,21 @@ import {
   Database, Copy, CheckCheck, Images, Loader2,
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabaseClient';
 
-// Fresh anon client used exclusively by CreatePostForm to guarantee the
-// publishable/anon key is used for insert, bypassing any cached auth state.
-const _SUPA_URL  = 'https://bjxgqbgjtzbgzdprtepd.supabase.co';
-const _SUPA_ANON = 'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr';
-const anonClient = createClient(_SUPA_URL, _SUPA_ANON);
+// Single Supabase client for ALL operations — no dual-client confusion.
+// auth options prevent any automatic session-refresh or auth-check requests
+// firing on page load (those phantom requests were triggering the RLS error).
+const anonClient = createClient(
+  'https://bjxgqbgjtzbgzdprtepd.supabase.co',
+  'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr',
+  {
+    auth: {
+      persistSession:    false,  // never write to localStorage
+      autoRefreshToken:  false,  // no background token-refresh requests
+      detectSessionInUrl: false, // ignore any ?access_token= in the URL
+    },
+  }
+);
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const PARCHMENT  = '#F5F0E8';
@@ -1451,34 +1459,32 @@ export default function Newsroom() {
   const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
   const clearToast = useCallback(() => setToast(null), []);
 
-  // Fetch all posts from Supabase — single source of truth, lowercase 'posts' table
-  const loadPostsFromDb = async () => {
+  // SELECT-only fetch — no insert, no update, no id sent.
+  // Targets lowercase 'posts' table exclusively.
+  const loadPostsFromDb = useCallback(async () => {
     setDbLoading(true);
-    setDbError(null);
+    setDbError(null);   // clear any stale error from a previous attempt
 
-    // SELECT * avoids silent failures from mismatched column names.
-    // Order by id (always present) — date may be null on manually-added rows.
-    // No status filter, no user_id filter — return every row.
     const { data, error } = await anonClient
-      .from('posts')
-      .select('*')
-      .order('id', { ascending: false });
+      .from('posts')    // ← lowercase 'posts' table
+      .select('*')      // ← SELECT * — no column name mismatches possible
+      .order('id', { ascending: false }); // ← order by id, not date (date may be null)
 
     if (error) {
       console.error('[Newsroom] loadPostsFromDb error:', JSON.stringify(error));
       setDbError(`${error.code ? `[${error.code}] ` : ''}${error.message}`);
     } else {
       const mapped = (data || []).map(dbRowToPost);
-      console.log('[Newsroom] Loaded', mapped.length, 'posts from `posts` table. IDs:', mapped.map(p => p.id));
+      console.log('[Newsroom] Loaded', mapped.length, 'rows. IDs:', mapped.map(p => p.id));
       setPosts(mapped);
     }
     setDbLoading(false);
-  };
+  }, []); // no deps — stable reference, safe to call anywhere
 
-  // On mount: load all posts from DB
+  // On mount: SELECT only — zero inserts triggered here
   useEffect(() => {
     loadPostsFromDb();
-  }, []);
+  }, [loadPostsFromDb]);
 
   // Update post locally and persist to Supabase
   // 'field' is the local key (industry / status); we map to DB column names
