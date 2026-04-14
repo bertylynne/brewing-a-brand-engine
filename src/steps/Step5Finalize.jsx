@@ -94,7 +94,7 @@ function PublishConfirmModal({ bizId, onConfirm, onCancel, loading }) {
 }
 
 // ── Admin: post-publish success view ──────────────────────────────────────────
-function AdminPublishSuccess({ data, onBack }) {
+function AdminPublishSuccess({ data, onBack, clientId }) {
   const bizId   = data.bizId || '';
   const liveUrl = `https://brewingabrand.com/${bizId}`;
   const [tick, setTick] = useState(0);
@@ -111,6 +111,35 @@ function AdminPublishSuccess({ data, onBack }) {
       {['top-5 left-5 border-t border-l','top-5 right-5 border-t border-r','bottom-5 left-5 border-b border-l','bottom-5 right-5 border-b border-r'].map((cls) => (
         <div key={cls} className={`absolute w-6 h-6 ${cls}`} style={{ borderColor: 'rgba(201,162,39,0.25)' }} />
       ))}
+
+      {/* ── Bespoke Brand DNA success notification ── */}
+      {clientId && (
+        <div
+          className="relative z-10 animate-fade-up w-full max-w-sm mb-6 rounded-2xl border overflow-hidden"
+          style={{ borderColor: 'rgba(201,162,39,0.5)', background: 'rgba(201,162,39,0.08)', boxShadow: '0 0 32px rgba(201,162,39,0.15)' }}
+        >
+          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: 'rgba(201,162,39,0.2)' }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(201,162,39,0.18)' }}>
+              <CheckCircle className="w-4 h-4" style={{ color: 'var(--gold)' }} />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: 'var(--gold)' }}>
+              Bespoke Brand DNA Saved.
+            </p>
+          </div>
+          <div className="px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-faint)' }}>
+              Salon ID
+            </span>
+            <span
+              className="text-[11px] font-mono font-bold px-3 py-1 rounded-lg select-all"
+              style={{ background: 'rgba(201,162,39,0.12)', color: 'var(--gold)', border: '1px solid rgba(201,162,39,0.3)', letterSpacing: '0.05em' }}
+              title="Copy this Salon ID"
+            >
+              {clientId}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Badge */}
       <div className="relative z-10 animate-fade-up mb-8">
@@ -192,7 +221,7 @@ function AdminPublishSuccess({ data, onBack }) {
 }
 
 // ── Client: post-save success view ────────────────────────────────────────────
-function CBALabPage({ data }) {
+function CBALabPage({ data, clientId }) {
   const [tick, setTick] = useState(0);
   const businessName = data.businessName || 'Your Business';
 
@@ -218,6 +247,35 @@ function CBALabPage({ data }) {
       {['top-5 left-5 border-t border-l','top-5 right-5 border-t border-r','bottom-5 left-5 border-b border-l','bottom-5 right-5 border-b border-r'].map((cls) => (
         <div key={cls} className={`absolute w-6 h-6 ${cls}`} style={{ borderColor: 'rgba(201,162,39,0.25)' }} />
       ))}
+
+      {/* ── Bespoke Brand DNA success notification ── */}
+      {clientId && (
+        <div
+          className="relative z-10 animate-fade-up w-full max-w-sm mb-6 rounded-2xl border overflow-hidden"
+          style={{ borderColor: 'rgba(201,162,39,0.5)', background: 'rgba(201,162,39,0.08)', boxShadow: '0 0 32px rgba(201,162,39,0.15)' }}
+        >
+          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: 'rgba(201,162,39,0.2)' }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(201,162,39,0.18)' }}>
+              <CheckCircle className="w-4 h-4" style={{ color: 'var(--gold)' }} />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: 'var(--gold)' }}>
+              Bespoke Brand DNA Saved.
+            </p>
+          </div>
+          <div className="px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-faint)' }}>
+              Salon ID
+            </span>
+            <span
+              className="text-[11px] font-mono font-bold px-3 py-1 rounded-lg select-all"
+              style={{ background: 'rgba(201,162,39,0.12)', color: 'var(--gold)', border: '1px solid rgba(201,162,39,0.3)', letterSpacing: '0.05em' }}
+              title="Copy this Salon ID"
+            >
+              {clientId}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 animate-fade-up mb-10">
         <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border" style={{ borderColor: 'rgba(201,162,39,0.25)', background: 'rgba(201,162,39,0.07)' }}>
@@ -334,6 +392,7 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
   const [progressMsg,    setProgressMsg]    = useState('');
   const [submitError,    setSubmitError]    = useState(null);
   const [showConfirm,    setShowConfirm]    = useState(false);   // confirm modal open
+  const [savedClientId,  setSavedClientId]  = useState(null);    // returned from submitBrief
 
   const businessType = data.businessType || 'barbershop';
   const isBarber     = businessType === 'barbershop';
@@ -359,7 +418,8 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
     setSubmitError(null);
     setProgressMsg('Connecting to CBA Database…');
     try {
-      await submitBrief(data, (msg) => setProgressMsg(msg), false);
+      const { clientId } = await submitBrief(data, (msg) => setProgressMsg(msg), false);
+      setSavedClientId(clientId);
       setLoading(false);
       setSubmitted(true);
     } catch (err) {
@@ -375,7 +435,8 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
     setSubmitError(null);
     setProgressMsg('Connecting to CBA Database…');
     try {
-      await submitBrief(data, (msg) => setProgressMsg(msg), true);
+      const { clientId } = await submitBrief(data, (msg) => setProgressMsg(msg), true);
+      setSavedClientId(clientId);
       setLoading(false);
       setShowConfirm(false);
       setPublished(true);
@@ -388,8 +449,8 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
   };
 
   // ── Success screens ───────────────────────────────────────────────────────
-  if (published) return <AdminPublishSuccess data={data} onBack={() => setPublished(false)} />;
-  if (submitted) return <CBALabPage data={data} />;
+  if (published) return <AdminPublishSuccess data={data} onBack={() => setPublished(false)} clientId={savedClientId} />;
+  if (submitted) return <CBALabPage data={data} clientId={savedClientId} />;
 
   return (
     <>

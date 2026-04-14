@@ -39,16 +39,34 @@ async function uploadAsset(blobUrl, filename, folder) {
   }
 }
 
+/**
+ * Derives a URL-safe subdomain prefix from a business name.
+ * e.g. "Glow by Carrie" → "glow-by-carrie"
+ */
+function toSubdomainPrefix(name) {
+  return (name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 48) || `salon-${Date.now()}`;
+}
+
 // ── Main submit function ───────────────────────────────────────────────────────
 
 /**
- * Uploads all assets, then inserts/upserts into:
- *   businesses, staff, services_offered
+ * Sequence Save:
+ *   1. Upload all brand/staff assets
+ *   2. INSERT into clients → get client_id
+ *   3. Upsert businesses row (linked to biz_id)
+ *   4. Replace staff rows  (tagged with biz_id + client_id)
+ *   5. Replace services    (tagged with biz_id + client_id)
  *
  * @param {object}   data           The full React state data object from App.jsx
  * @param {function} onProgress     Called with a status string as work progresses
- * @param {boolean}  publishAction  If true (admin only), sets is_published: true on the record
- * @returns {{ bizId: string }}
+ * @param {boolean}  publishAction  If true (admin only), sets is_published: true
+ * @returns {{ bizId: string, clientId: string }}
  */
 export async function submitBrief(data, onProgress = () => {}, publishAction = false) {
   const bizId = data.bizId || `biz-${Date.now()}`;
@@ -82,7 +100,25 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
     })
   );
 
-  // ── 2. Upsert businesses row ───────────────────────────────────────────────
+  // ── 2. CREATE client record — first action in the sequence ─────────────────
+  onProgress('Creating salon client record…');
+  const subdomainPrefix = toSubdomainPrefix(data.businessName);
+
+  const { data: clientRow, error: clientError } = await supabase
+    .from('clients')
+    .insert({
+      name:             data.businessName    || 'Unnamed Salon',
+      logo_url:         logoUrl,
+      brand_colors:     data.brandColors     || null,
+      subdomain_prefix: subdomainPrefix,
+    })
+    .select('id')
+    .single();
+
+  if (clientError) throw new Error(`clients: ${clientError.message}`);
+  const clientId = clientRow.id;
+
+  // ── 3. Upsert businesses row ───────────────────────────────────────────────
   onProgress('Saving business profile…');
   const { error: bizError } = await supabase
     .from('businesses')
@@ -107,13 +143,14 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
         business_hours:    data.businessHours  || null,
         status:            publishAction ? 'published' : 'pending',
         is_published:      publishAction,
+        client_id:         clientId,
       },
       { onConflict: 'biz_id' }
     );
 
   if (bizError) throw new Error(`businesses: ${bizError.message}`);
 
-  // ── 3. Replace staff rows ──────────────────────────────────────────────────
+  // ── 4. Replace staff rows — tagged with client_id ──────────────────────────
   onProgress('Saving team members…');
   await supabase.from('staff').delete().eq('biz_id', bizId);
 
@@ -122,23 +159,24 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
       .from('staff')
       .insert(
         staffWithPhotos.map((m) => ({
-          biz_id:         bizId,
-          name:           m.name              || null,
-          role_type:      m.title             || null,
-          bio:            m.bio               || null,
-          instagram:      m.instagram         || null,
-          contact_email:  m.contactEmail      || null,
-          contact_phone:  m.contactPhone      || null,
+          biz_id:           bizId,
+          client_id:        clientId,
+          name:             m.name              || null,
+          role_type:        m.title             || null,
+          bio:              m.bio               || null,
+          instagram:        m.instagram         || null,
+          contact_email:    m.contactEmail      || null,
+          contact_phone:    m.contactPhone      || null,
           booking_style:    m.bookingStyle      || 'digital',
-          booking_link:     m.bookingLink      || null,
-          portfolio_access: m.portfolioAccess  || false,
-          photo_url:      m.uploadedPhotoUrl  || null,
+          booking_link:     m.bookingLink       || null,
+          portfolio_access: m.portfolioAccess   || false,
+          photo_url:        m.uploadedPhotoUrl  || null,
         }))
       );
     if (staffError) throw new Error(`staff: ${staffError.message}`);
   }
 
-  // ── 4. Replace services rows ───────────────────────────────────────────────
+  // ── 5. Replace services rows — tagged with client_id ──────────────────────
   onProgress('Saving services…');
   await supabase.from('services_offered').delete().eq('biz_id', bizId);
 
@@ -147,16 +185,17 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
       .from('services_offered')
       .insert(
         (data.selectedServices || []).map((s) => ({
-          biz_id:   bizId,
-          name:     s.name     || null,
-          category: s.category || null,
-          duration: s.duration ?? null,
-          buffer:   s.buffer   ?? null,
-          custom:   s.custom   || false,
+          biz_id:    bizId,
+          client_id: clientId,
+          name:      s.name     || null,
+          category:  s.category || null,
+          duration:  s.duration ?? null,
+          buffer:    s.buffer   ?? null,
+          custom:    s.custom   || false,
         }))
       );
     if (svcError) throw new Error(`services_offered: ${svcError.message}`);
   }
 
-  return { bizId };
+  return { bizId, clientId };
 }
