@@ -28,7 +28,7 @@ const BOOKING_STYLE_META = {
 
 // ── Admin Confirm Modal ────────────────────────────────────────────────────────
 function PublishConfirmModal({ bizId, onConfirm, onCancel, loading }) {
-  const liveUrl = `${window.location.origin}/?page=master-template&id=${bizId}`;
+  const liveUrl = `${window.location.origin}/master-template?id=${bizId}`;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}>
       <div
@@ -96,9 +96,7 @@ function PublishConfirmModal({ bizId, onConfirm, onCancel, loading }) {
 // ── Admin: post-publish success view ──────────────────────────────────────────
 function AdminPublishSuccess({ data, onBack, clientId }) {
   const bizId   = data.bizId || '';
-  const liveUrl = clientId
-    ? `${window.location.origin}/?page=master-template&id=${clientId}`
-    : `${window.location.origin}/?page=master-template&id=${bizId}`;
+  const liveUrl = `${window.location.origin}/master-template?id=${clientId || bizId}`;
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -401,8 +399,8 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
   const accent       = isBarber ? '#c9a227' : '#d4a0c8';
   const bizId        = data.bizId || '';
   const liveUrl      = savedClientId
-    ? `${window.location.origin}/?page=master-template&id=${savedClientId}`
-    : `${window.location.origin}/?page=onboarding`;
+    ? `${window.location.origin}/master-template?id=${savedClientId}`
+    : `${window.location.origin}/onboarding`;
 
   const selectedServices  = data.selectedServices || [];
   const serviceCategories = selectedServices.reduce((acc, svc) => {
@@ -428,7 +426,7 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
       setSubmitted(true);
       // Redirect to the live MasterTemplate for this salon
       if (clientId) {
-        window.location.href = `${window.location.origin}/?page=master-template&id=${clientId}`;
+        window.location.href = `${window.location.origin}/master-template?id=${clientId}`;
       }
     } catch (err) {
       setLoading(false);

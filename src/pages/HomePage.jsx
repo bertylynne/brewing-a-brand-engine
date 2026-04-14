@@ -15,7 +15,7 @@ const BORDER     = 'rgba(44,62,80,0.10)';
 const CARDS = [
   {
     id:        'newsroom',
-    href:      '?page=newsroom',
+    href:      '/newsroom',
     icon:      Newspaper,
     iconBg:    `${SIGNAL}15`,
     iconColor: SIGNAL,
@@ -26,7 +26,7 @@ const CARDS = [
   },
   {
     id:        'onboarding',
-    href:      '?page=onboarding',
+    href:      '/onboarding',
     icon:      Users,
     iconBg:    `${BRASS}18`,
     iconColor: BRASS,

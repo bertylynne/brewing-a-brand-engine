@@ -118,9 +118,15 @@ function Toast({ message, subtext, onDismiss }) {
 
 // ── App ────────────────────────────────────────────────────────────────────────
 export default function App() {
-  // Check for ?page= param on mount — drives top-level page routing
-  // No param → show the command center homepage
-  const [page] = useState(() => new URLSearchParams(window.location.search).get('page') ?? 'home');
+  // Pathname-based routing — /onboarding, /newsroom, /resources, /master-template
+  // Bare / or anything unrecognised → home dashboard
+  // Pathname-based routing — /onboarding, /newsroom, /resources, /master-template
+  // Bare / (or /home) → home dashboard; anything else treated as onboarding wizard
+  const [page] = useState(() => {
+    const path = window.location.pathname.replace(/^\//, '').split('/')[0].toLowerCase();
+    if (['home', 'newsroom', 'resources', 'master-template', 'onboarding'].includes(path)) return path;
+    return path || 'home';
+  });
 
   const [step,    setStep]    = useState(1);
   const [data,    setData]    = useState(DEFAULT_DATA);
@@ -129,12 +135,12 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast,   setToast]   = useState(null); // { message, subtext }
 
-  // ── Page routing (all behind LoginGate) ────────────────────────────────────
+  // ── Path routing ─────────────────────────────────────────────────────────────
   if (page === 'home')            return <LoginGate><HomePage /></LoginGate>;
   if (page === 'newsroom')        return <LoginGate><Newsroom /></LoginGate>;
   if (page === 'resources')       return <LoginGate><Resources /></LoginGate>;
   if (page === 'master-template') return <MasterTemplate />;
-  // ?page=onboarding falls through to the step wizard below (no special return needed)
+  // /onboarding (and any unrecognised path) falls through to the step wizard below
 
   const showToast = useCallback((message, subtext) => {
     setToast({ message, subtext });
