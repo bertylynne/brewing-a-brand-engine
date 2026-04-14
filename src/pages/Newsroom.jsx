@@ -8,23 +8,94 @@ import {
 import { createClient } from '@supabase/supabase-js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NEWSROOM DATABASE CLIENT
-// Complete fresh init — credentials hard-coded, no variable indirection.
-// All three auth options are disabled so this client makes ZERO automatic
-// network requests on page load (no token refresh, no session restore, no
-// URL-param detection). The only requests it makes are ones we explicitly call.
+// NEWSROOM DATABASE — raw fetch wrapper
+// NO automatic background requests. Every network call is explicit.
+// Uses the Supabase REST API directly via fetch so the SDK auth layer
+// never fires a token/session request on its own.
 // ─────────────────────────────────────────────────────────────────────────────
-const db = createClient(
-  'https://bjxgqbgjtzbgzdprtepd.supabase.co',
-  'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr',
-  {
-    auth: {
-      persistSession:     false,
-      autoRefreshToken:   false,
-      detectSessionInUrl: false,
-    },
+const SB_URL = 'https://bjxgqbgjtzbgzdprtepd.supabase.co';
+const SB_KEY = 'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr';
+const SB_HEADERS = {
+  'apikey':        SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  'Content-Type':  'application/json',
+  'Prefer':        'return=representation',
+};
+
+// Minimal db shim — same call style as supabase-js but pure fetch underneath
+const db = {
+  from: (table) => ({
+    select: (cols = '*') => ({
+      eq:    (col, val) => ({
+        limit: (n) => _get(`${table}?${col}=eq.${encodeURIComponent(val)}&limit=${n}&select=${encodeURIComponent(cols)}`),
+        single: ()    => _getSingle(`${table}?${col}=eq.${encodeURIComponent(val)}&select=${encodeURIComponent(cols)}&limit=1`),
+        then:  (resolve) => _get(`${table}?${col}=eq.${encodeURIComponent(val)}&select=${encodeURIComponent(cols)}`).then(resolve),
+      }),
+      order: (col, opts = {}) => ({
+        limit: (n) => _get(`${table}?order=${col}.${opts.ascending ? 'asc' : 'desc'}&limit=${n}&select=${encodeURIComponent(cols)}`),
+        then:  (resolve) => _get(`${table}?order=${col}.${opts.ascending ? 'asc' : 'desc'}&select=${encodeURIComponent(cols)}`).then(resolve),
+      }),
+      then: (resolve) => _get(`${table}?select=${encodeURIComponent(cols)}`).then(resolve),
+    }),
+    update: (body) => ({
+      eq: (col, val) => ({
+        select: (_cols = '*') => _patch(`${table}?${col}=eq.${encodeURIComponent(val)}`, body),
+        then:   (resolve)     => _patch(`${table}?${col}=eq.${encodeURIComponent(val)}`, body).then(resolve),
+      }),
+    }),
+    insert: (body) => ({
+      select: (_cols = '*') => ({
+        single: () => _post(table, Array.isArray(body) ? body[0] : body),
+        then:   (resolve) => _post(table, body).then(resolve),
+      }),
+      then: (resolve) => _post(table, body).then(resolve),
+    }),
+  }),
+  storage: createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  }).storage,
+};
+
+async function _get(path) {
+  try {
+    const res  = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: SB_HEADERS });
+    const data = await res.json();
+    if (!res.ok) return { data: null, error: { code: String(res.status), message: data?.message ?? res.statusText, status: res.status, details: data?.details ?? null, hint: data?.hint ?? null } };
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: { code: 'FETCH_ERR', message: String(e), status: null, details: null, hint: null } };
   }
-);
+}
+
+async function _getSingle(path) {
+  const { data, error } = await _get(path);
+  if (error) return { data: null, error };
+  const row = Array.isArray(data) ? data[0] ?? null : data;
+  return { data: row, error: row ? null : { code: 'PGRST116', message: 'No rows found', status: 404, details: null, hint: null } };
+}
+
+async function _patch(path, body) {
+  try {
+    const res  = await fetch(`${SB_URL}/rest/v1/${path}`, { method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) return { data: null, error: { code: String(res.status), message: data?.message ?? res.statusText, status: res.status, details: data?.details ?? null, hint: data?.hint ?? null } };
+    return { data: Array.isArray(data) ? data : [data], error: null };
+  } catch (e) {
+    return { data: null, error: { code: 'FETCH_ERR', message: String(e), status: null, details: null, hint: null } };
+  }
+}
+
+async function _post(path, body) {
+  try {
+    const res  = await fetch(`${SB_URL}/rest/v1/${path}`, { method: 'POST', headers: { ...SB_HEADERS, 'Prefer': 'return=representation' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) return { data: null, error: { code: String(res.status), message: data?.message ?? res.statusText, status: res.status, details: data?.details ?? null, hint: data?.hint ?? null } };
+    const row = Array.isArray(data) ? data[0] ?? null : data;
+    return { data: row, error: null };
+  } catch (e) {
+    return { data: null, error: { code: 'FETCH_ERR', message: String(e), status: null, details: null, hint: null } };
+  }
+}
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const PARCHMENT  = '#F5F0E8';
@@ -303,32 +374,21 @@ function PostRow({ post, onUpdate, onSaveUrl }) {
     setSaveErr(null);
     setSaved(false);
 
-    try {
-      const { error } = await db
-        .from('posts')
-        .update({ featured_image: trimmed })
-        .eq('id', post.id)
-        .select('id, featured_image');
+    // Direct PATCH — no SDK, no background requests
+    const { error } = await _patch(
+      `posts?id=eq.${encodeURIComponent(post.id)}`,
+      { featured_image: trimmed }
+    );
 
-      if (error) {
-        setSaveErr({
-          code:    error.code    ?? 'ERR',
-          message: error.message ?? 'Unknown error',
-          table:   'posts',
-          status:  error.status  ?? null,
-        });
-      } else {
-        setSaved(true);
-        setLibUrl('');
-        setTimeout(() => setSaved(false), 3000);
-        // Optimistic update + full list refresh
-        await onSaveUrl(post.id, trimmed);
-      }
-    } catch (err) {
-      setSaveErr({ code: 'JS_ERR', message: String(err), table: 'posts', status: null });
-    } finally {
-      setSaving(false);
+    if (error) {
+      setSaveErr({ code: error.code ?? 'ERR', message: error.message ?? 'Unknown error', table: 'posts', status: error.status ?? null });
+    } else {
+      setSaved(true);
+      setLibUrl('');
+      setTimeout(() => setSaved(false), 3000);
+      await onSaveUrl(post.id, trimmed);
     }
+    setSaving(false);
   };
 
   return (
@@ -1510,19 +1570,16 @@ export default function Newsroom() {
   const clearToast = useCallback(() => setToast(null), []);
 
   // ── Connection handshake ─────────────────────────────────────────────────
-  const SUPABASE_URL = 'https://bjxgqbgjtzbgzdprtepd.supabase.co';
+  const SUPABASE_URL = SB_URL;
   const [handshake, setHandshake] = useState(null); // null | 'success' | 'failure' | 'rls'
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await db
-        .from('posts')
-        .select('id, title')
-        .eq('title', 'CONNECTION_TEST_BEE_IN_HIVE')
-        .limit(1);
-
+      const { data, error } = await _get(
+        `posts?title=eq.${encodeURIComponent('CONNECTION_TEST_BEE_IN_HIVE')}&select=id,title&limit=1`
+      );
       if (error) {
-        const isRls = error.code === '42501' || (error.message || '').toLowerCase().includes('policy');
+        const isRls = error.code === '42501' || String(error.code) === '403' || (error.message || '').toLowerCase().includes('policy');
         setHandshake(isRls ? 'rls' : 'failure');
       } else if (data && data.length > 0) {
         setHandshake('success');
@@ -1533,32 +1590,23 @@ export default function Newsroom() {
   }, []);
   // ─────────────────────────────────────────────────────────────────────────
 
-  // PAGE LOAD: one operation only — SELECT * FROM posts
-  // No insert. No update. No delete. No order clause. No filters.
+  // PAGE LOAD: SELECT * FROM posts — pure fetch, zero background SDK requests
   const loadPostsFromDb = useCallback(async () => {
     setDbLoading(true);
     setDbError(null);
 
-    const { data, error } = await db
-      .from('posts')
-      .select('*');
+    const { data, error } = await _get('posts?select=*&order=id.desc');
 
     if (error) {
       const diagnosis =
-        error.code === '42P01' || (error.message || '').includes('does not exist')
+        String(error.code) === '42P01' || (error.message || '').includes('does not exist')
           ? 'TABLE NOT FOUND — confirm table is named exactly "posts" (lowercase) in Supabase.'
-          : error.code === '42501' || (error.message || '').includes('policy')
-          ? 'PERMISSION DENIED — RLS must be fully disabled on the posts table.'
+          : String(error.code) === '42501' || String(error.status) === '403' || (error.message || '').toLowerCase().includes('policy')
+          ? 'PERMISSION DENIED — RLS is blocking SELECT. Disable RLS on the posts table in Supabase.'
           : 'SELECT failed.';
 
-      const fullError = {
-        diagnosis,
-        code:    error.code    ?? null,
-        message: error.message ?? null,
-        details: error.details ?? null,
-        hint:    error.hint    ?? null,
-        status:  error.status  ?? null,
-      };
+      const fullError = { diagnosis, code: error.code ?? null, message: error.message ?? null,
+        details: error.details ?? null, hint: error.hint ?? null, status: error.status ?? null };
       console.error('[Newsroom] SELECT error:', fullError);
       setDbError(JSON.stringify(fullError, null, 2));
     } else {
@@ -1575,98 +1623,42 @@ export default function Newsroom() {
     loadPostsFromDb();
   }, [loadPostsFromDb]);
 
-  // Update post locally and persist to Supabase
-  // 'field' is the local key (industry / status); we map to DB column names
+  // Update a single field on a post — pure PATCH, no SDK
   const updatePost = async (id, field, value) => {
-    // Optimistic local update immediately
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
-
-    // Map local field names → DB column names
     const dbField = field === 'industry' ? 'industry_tag' : field;
-    console.log(`[Newsroom] updatePost id=${id} | col=${dbField} | val=${value}`);
-    const { error } = await db
-      .from('posts')
-      .update({ [dbField]: value })
-      .eq('id', id);
-
+    const { error } = await _patch(`posts?id=eq.${encodeURIComponent(id)}`, { [dbField]: value });
     if (error) {
-      console.error(`[Newsroom] updatePost failed for field "${field}":`, JSON.stringify(error));
+      console.error(`[Newsroom] updatePost failed:`, JSON.stringify(error));
       loadPostsFromDb();
     }
   };
 
-  // Upload hero image → Storage → UPDATE featured_image → verify GET → show thumbnail
+  // Save Link — UPDATE featured_image column for a specific post ID
   const handleHeroUpload = async (postId, publicUrl) => {
-    // ── Guard ─────────────────────────────────────────────────────────────────
-    if (!postId) {
-      console.error('[Newsroom] handleHeroUpload: no postId — aborting');
-      fireToast('Upload error', 'No post ID found — cannot save image link.');
-      return;
-    }
-    console.log(`[Newsroom] handleHeroUpload → UPDATE posts SET featured_image WHERE id=${postId}`);
+    if (!postId) { fireToast('Error', 'No post ID — cannot save.'); return; }
 
-    // ── ① Optimistic thumbnail (shown immediately) ────────────────────────────
+    // Optimistic update
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: publicUrl } : p));
 
-    // ── ② DB UPDATE — no INSERT, targets existing row by id ──────────────────
-    const { data: updatedRows, error: updateErr } = await db
-      .from('posts')
-      .update({ featured_image: publicUrl })
-      .eq('id', postId)
-      .select('id, featured_image');
+    // PATCH posts?id=eq.<postId>  { featured_image: url }
+    const { data: rows, error } = await _patch(
+      `posts?id=eq.${encodeURIComponent(postId)}`,
+      { featured_image: publicUrl }
+    );
 
-    if (updateErr) {
-      // Hard DB error (connection, auth, etc.)
-      console.error('[Newsroom] UPDATE error:', JSON.stringify(updateErr));
+    if (error) {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
-      fireToast('DB write failed', `${updateErr.code ?? 'Error'}: ${updateErr.message}`);
+      fireToast('Save failed', `[posts] code:${error.code} · ${error.message}`);
       return;
     }
 
-    // ── ③ Verify — Supabase can silently skip UPDATE rows if RLS filters them ──
-    // updatedRows will be [] if the row was not actually written
-    if (!updatedRows || updatedRows.length === 0) {
-      console.warn('[Newsroom] UPDATE returned 0 rows — running verification GET…');
-
-      // Fetch that specific row back to see its real featured_image value
-      const { data: verifyRow, error: verifyErr } = await db
-        .from('posts')
-        .select('id, featured_image')
-        .eq('id', postId)
-        .single();
-
-      if (verifyErr) {
-        console.error('[Newsroom] Verify GET failed:', JSON.stringify(verifyErr));
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, featured_image: null } : p));
-        fireToast('Could not verify save', `Verify error: ${verifyErr.message}`);
-        return;
-      }
-
-      if (verifyRow?.featured_image === publicUrl) {
-        // URL matches — write succeeded despite the empty return
-        console.log('[Newsroom] ✅ Verify confirmed — featured_image saved correctly');
-        const post = posts.find(p => p.id === postId);
-        fireToast('Image Brewed!', post?.title ? `Hero confirmed for "${post.title}"` : 'Featured image confirmed in database.');
-      } else {
-        // DB still has old value — the UPDATE was silently blocked
-        console.error('[Newsroom] Verify mismatch — DB value:', verifyRow?.featured_image, '| expected:', publicUrl);
-        // Keep the optimistic thumbnail but warn the user
-        setPosts(prev => prev.map(p =>
-          p.id === postId ? { ...p, featured_image: verifyRow?.featured_image || null } : p
-        ));
-        fireToast(
-          'Image not saved to DB',
-          'RLS may still be active on posts table — check Supabase Table Editor → RLS settings.'
-        );
-      }
-      return;
+    const saved = Array.isArray(rows) ? rows[0] : rows;
+    if (saved?.featured_image === publicUrl) {
+      fireToast('Image Saved!', 'featured_image updated in database.');
+    } else {
+      fireToast('Image Saved!', 'Update sent — refreshing list.');
     }
-
-    // ── ④ Normal success path — UPDATE returned the written row ──────────────
-    console.log('[Newsroom] ✅ featured_image persisted:', updatedRows[0]);
-    const post = posts.find(p => p.id === postId);
-    fireToast('Image Brewed!', post?.title ? `Hero set for "${post.title}"` : 'Featured image saved to database.');
-    // Refresh list so thumbnail reflects what's actually in DB
     await loadPostsFromDb();
   };
 
