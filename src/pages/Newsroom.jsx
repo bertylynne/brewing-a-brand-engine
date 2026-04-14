@@ -1367,56 +1367,40 @@ export default function Newsroom() {
   const fireToast = useCallback((message, sub) => setToast({ message, sub }), []);
   const clearToast = useCallback(() => setToast(null), []);
 
-  // ── FETCH — the ONLY operation that runs on page load ────────────────────────
-  // Pure SELECT * from 'posts' (hard-coded, lowercase). No insert, no update,
-  // no id field sent. Stores the full raw error object for verbatim display.
+  // PAGE LOAD: one operation only — SELECT * FROM posts
+  // No insert. No update. No delete. No order clause. No filters.
   const loadPostsFromDb = useCallback(async () => {
     setDbLoading(true);
     setDbError(null);
 
-    let result;
-    try {
-      result = await db
-        .from('posts')          // hard-coded table name — never a variable
-        .select('*')            // SELECT * avoids column-name mismatch errors
-        .order('id', { ascending: false }); // id always exists; date may be null
-    } catch (networkErr) {
-      const raw = { type: 'network', message: String(networkErr) };
-      console.error('[Newsroom] network error:', raw);
-      setDbError(JSON.stringify(raw, null, 2));
-      setDbLoading(false);
-      return;
-    }
-
-    const { data, error } = result;
+    const { data, error } = await db
+      .from('posts')
+      .select('*');
 
     if (error) {
-      // Classify the error before displaying
-      const isTableMissing =
-        error.code === '42P01' ||           // PostgreSQL: undefined_table
-        error.code === 'PGRST106' ||        // PostgREST: schema cache miss
-        (error.message || '').toLowerCase().includes('does not exist') ||
-        (error.message || '').toLowerCase().includes('not found');
+      const diagnosis =
+        error.code === '42P01' || (error.message || '').includes('does not exist')
+          ? 'TABLE NOT FOUND — confirm table is named exactly "posts" (lowercase) in Supabase.'
+          : error.code === '42501' || (error.message || '').includes('policy')
+          ? 'PERMISSION DENIED — RLS must be fully disabled on the posts table.'
+          : 'SELECT failed.';
 
-      const raw = {
-        diagnosis: isTableMissing
-          ? 'TABLE NOT FOUND — the "posts" table does not exist in the public schema. Create it in Supabase → Table Editor.'
-          : 'SELECT failed — see fields below.',
-        code:    error.code,
-        message: error.message,
-        details: error.details,
-        hint:    error.hint,
-        status:  error.status,
+      const fullError = {
+        diagnosis,
+        code:    error.code    ?? null,
+        message: error.message ?? null,
+        details: error.details ?? null,
+        hint:    error.hint    ?? null,
+        status:  error.status  ?? null,
       };
-      console.error('[Newsroom] SELECT error (full):', raw);
-      setDbError(JSON.stringify(raw, null, 2));
-      setDbLoading(false);
-      return;
+      console.error('[Newsroom] SELECT error:', fullError);
+      setDbError(JSON.stringify(fullError, null, 2));
+    } else {
+      const rows = (data || []).map(dbRowToPost);
+      console.log('[Newsroom] ✅', rows.length, 'posts loaded. IDs:', rows.map(r => r.id));
+      setPosts(rows);
     }
 
-    const mapped = (data || []).map(dbRowToPost);
-    console.log('[Newsroom] ✅ Loaded', mapped.length, 'rows from `posts`. IDs:', mapped.map(p => p.id));
-    setPosts(mapped);
     setDbLoading(false);
   }, []);
 
