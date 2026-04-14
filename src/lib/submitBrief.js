@@ -1,20 +1,45 @@
 import { supabase } from './supabaseClient';
 
+// ── Raw fetch helpers (same pattern as Newsroom — no SDK auth layer) ──────────
+
+const SB_URL  = 'https://bjxgqbgjtzbgzdprtepd.supabase.co';
+const SB_KEY  = 'sb_publishable_5mY9p11tWx6znT3h2zMr2A_1J19xwEr';
+const SB_HDRS = {
+  'apikey':        SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  'Content-Type':  'application/json',
+  'Prefer':        'return=representation',
+};
+
+async function dbPost(table, body) {
+  const res  = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_HDRS, body: JSON.stringify(body) });
+  const json = await res.json();
+  if (!res.ok) return { data: null, error: { message: json?.message || json?.hint || JSON.stringify(json) } };
+  return { data: Array.isArray(json) ? json : [json], error: null };
+}
+
+async function dbUpsert(table, body, onConflict) {
+  const hdrs = { ...SB_HDRS, 'Prefer': `return=representation,resolution=merge-duplicates` };
+  const url  = `${SB_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`;
+  const res  = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) });
+  const json = await res.json();
+  if (!res.ok) return { error: { message: json?.message || json?.hint || JSON.stringify(json) } };
+  return { error: null };
+}
+
+async function dbDelete(table, col, val) {
+  const res = await fetch(`${SB_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`, { method: 'DELETE', headers: SB_HDRS });
+  return { error: res.ok ? null : { message: `DELETE ${table} failed: ${res.status}` } };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/**
- * Converts a blob: URL (in-memory) into an uploadable File object.
- */
 async function blobUrlToFile(blobUrl, filename) {
   const response = await fetch(blobUrl);
   const blob     = await response.blob();
   return new File([blob], filename, { type: blob.type });
 }
 
-/**
- * Uploads a single asset to salon-assets storage.
- * Returns the permanent public URL, or null on failure.
- */
 async function uploadAsset(blobUrl, filename, folder) {
   if (!blobUrl || !blobUrl.startsWith('blob:')) return blobUrl || null;
 
@@ -39,10 +64,6 @@ async function uploadAsset(blobUrl, filename, folder) {
   }
 }
 
-/**
- * Derives a URL-safe subdomain prefix from a business name.
- * e.g. "Glow by Carrie" → "glow-by-carrie"
- */
 function toSubdomainPrefix(name) {
   return (name || '')
     .toLowerCase()
@@ -55,19 +76,6 @@ function toSubdomainPrefix(name) {
 
 // ── Main submit function ───────────────────────────────────────────────────────
 
-/**
- * Sequence Save:
- *   1. Upload all brand/staff assets
- *   2. INSERT into clients → get client_id
- *   3. Upsert businesses row (linked to biz_id)
- *   4. Replace staff rows  (tagged with biz_id + client_id)
- *   5. Replace services    (tagged with biz_id + client_id)
- *
- * @param {object}   data           The full React state data object from App.jsx
- * @param {function} onProgress     Called with a status string as work progresses
- * @param {boolean}  publishAction  If true (admin only), sets is_published: true
- * @returns {{ bizId: string, clientId: string }}
- */
 export async function submitBrief(data, onProgress = () => {}, publishAction = false) {
   const bizId = data.bizId || `biz-${Date.now()}`;
 
@@ -100,100 +108,102 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
     })
   );
 
-  // ── 2. CREATE client record — first action in the sequence ─────────────────
+  // ── 2. CREATE client record — raw fetch, no SDK ────────────────────────────
   onProgress('Creating salon client record…');
   const subdomainPrefix = toSubdomainPrefix(data.businessName);
 
-  const { data: clientRow, error: clientError } = await supabase
-    .from('clients')
-    .insert({
-      name:             data.businessName    || 'Unnamed Salon',
-      logo_url:         logoUrl,
-      brand_colors:     data.brandColors     || null,
-      subdomain_prefix: subdomainPrefix,
-    })
-    .select('id')
-    .single();
+  const clientFields = {
+    name:             data.businessName || 'Unnamed Salon',
+    logo_url:         logoUrl           || null,
+    brand_colors:     data.brandColors  || null,   // jsonb — fetch will JSON.stringify the whole body
+    subdomain_prefix: subdomainPrefix,
+  };
 
+  // ✅ DEBUG: inspect exact payload before sending
+  console.log('Sending to Supabase (clients):', JSON.stringify(clientFields, null, 2));
+
+  const { data: clientRows, error: clientError } = await dbPost('clients', clientFields);
   if (clientError) throw new Error(`clients: ${clientError.message}`);
-  const clientId = clientRow.id;
+  const clientId = clientRows[0]?.id;
+  if (!clientId) throw new Error('clients: insert succeeded but no id returned');
+
+  console.log('Client record created. clientId:', clientId);
 
   // ── 3. Upsert businesses row ───────────────────────────────────────────────
   onProgress('Saving business profile…');
-  const { error: bizError } = await supabase
-    .from('businesses')
-    .upsert(
-      {
-        biz_id:            bizId,
-        business_name:     data.businessName   || null,
-        business_type:     data.businessType   || null,
-        address:           data.address        || null,
-        phone:             data.phone          || null,
-        rating:            data.rating         ?? null,
-        hero_text:         data.heroText       || null,
-        tagline:           data.tagline        || null,
-        logo_url:          logoUrl,
-        hero_image_url:    heroImageUrl,
-        brand_photos:      brandPhotosUploaded,
-        hiring_info:       data.hiring         || null,
-        social_links:      data.socialLinks    || null,
-        accepted_payments: data.paymentMethods || null,
-        brand_colors:      data.brandColors    || null,
-        custom_design:     data.customDesign   || null,
-        business_hours:    data.businessHours  || null,
-        status:            publishAction ? 'published' : 'pending',
-        is_published:      publishAction,
-        client_id:         clientId,
-      },
-      { onConflict: 'biz_id' }
-    );
 
+  const bizFields = {
+    biz_id:            bizId,
+    business_name:     data.businessName   || null,
+    business_type:     data.businessType   || null,
+    address:           data.address        || null,
+    phone:             data.phone          || null,
+    rating:            data.rating         ?? null,
+    hero_text:         data.heroText       || null,
+    tagline:           data.tagline        || null,
+    logo_url:          logoUrl             || null,
+    hero_image_url:    heroImageUrl        || null,
+    brand_photos:      brandPhotosUploaded,
+    hiring_info:       data.hiring         || null,
+    social_links:      data.socialLinks    || null,
+    accepted_payments: data.paymentMethods || null,
+    brand_colors:      data.brandColors    || null,
+    custom_design:     data.customDesign   || null,
+    business_hours:    data.businessHours  || null,
+    status:            publishAction ? 'published' : 'pending',
+    is_published:      publishAction,
+    client_id:         clientId,
+  };
+
+  console.log('Sending to Supabase (businesses):', JSON.stringify(bizFields, null, 2));
+
+  const { error: bizError } = await dbUpsert('businesses', bizFields, 'biz_id');
   if (bizError) throw new Error(`businesses: ${bizError.message}`);
 
   // ── 4. Replace staff rows — tagged with client_id ──────────────────────────
   onProgress('Saving team members…');
-  await supabase.from('staff').delete().eq('biz_id', bizId);
+  await dbDelete('staff', 'biz_id', bizId);
 
   if (staffWithPhotos.length > 0) {
-    const { error: staffError } = await supabase
-      .from('staff')
-      .insert(
-        staffWithPhotos.map((m) => ({
-          biz_id:           bizId,
-          client_id:        clientId,
-          name:             m.name              || null,
-          role_type:        m.title             || null,
-          bio:              m.bio               || null,
-          instagram:        m.instagram         || null,
-          contact_email:    m.contactEmail      || null,
-          contact_phone:    m.contactPhone      || null,
-          booking_style:    m.bookingStyle      || 'digital',
-          booking_link:     m.bookingLink       || null,
-          portfolio_access: m.portfolioAccess   || false,
-          photo_url:        m.uploadedPhotoUrl  || null,
-        }))
-      );
+    const staffFields = staffWithPhotos.map((m) => ({
+      biz_id:           bizId,
+      client_id:        clientId,
+      name:             m.name              || null,
+      role_type:        m.title             || null,
+      bio:              m.bio               || null,
+      instagram:        m.instagram         || null,
+      contact_email:    m.contactEmail      || null,
+      contact_phone:    m.contactPhone      || null,
+      booking_style:    m.bookingStyle      || 'digital',
+      booking_link:     m.bookingLink       || null,
+      portfolio_access: m.portfolioAccess   || false,
+      photo_url:        m.uploadedPhotoUrl  || null,
+    }));
+
+    console.log('Sending to Supabase (staff):', JSON.stringify(staffFields, null, 2));
+
+    const { error: staffError } = await dbPost('staff', staffFields);
     if (staffError) throw new Error(`staff: ${staffError.message}`);
   }
 
   // ── 5. Replace services rows — tagged with client_id ──────────────────────
   onProgress('Saving services…');
-  await supabase.from('services_offered').delete().eq('biz_id', bizId);
+  await dbDelete('services_offered', 'biz_id', bizId);
 
   if ((data.selectedServices || []).length > 0) {
-    const { error: svcError } = await supabase
-      .from('services_offered')
-      .insert(
-        (data.selectedServices || []).map((s) => ({
-          biz_id:    bizId,
-          client_id: clientId,
-          name:      s.name     || null,
-          category:  s.category || null,
-          duration:  s.duration ?? null,
-          buffer:    s.buffer   ?? null,
-          custom:    s.custom   || false,
-        }))
-      );
+    const svcFields = (data.selectedServices || []).map((s) => ({
+      biz_id:    bizId,
+      client_id: clientId,
+      name:      s.name     || null,
+      category:  s.category || null,
+      duration:  s.duration ?? null,
+      buffer:    s.buffer   ?? null,
+      custom:    s.custom   || false,
+    }));
+
+    console.log('Sending to Supabase (services_offered):', JSON.stringify(svcFields, null, 2));
+
+    const { error: svcError } = await dbPost('services_offered', svcFields);
     if (svcError) throw new Error(`services_offered: ${svcError.message}`);
   }
 
