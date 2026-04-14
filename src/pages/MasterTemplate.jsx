@@ -224,7 +224,7 @@ function Hero({ client }) {
             className="text-[10px] font-mono tracking-widest"
             style={{ color: `${secondary}55` }}
           >
-            {subdomain}.brewingabrand.com
+            {subdomain}.{window.location.hostname}
           </p>
         )}
 
