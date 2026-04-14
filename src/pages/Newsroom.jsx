@@ -289,56 +289,157 @@ function HeroCell({ post, onHeroUpload }) {
   );
 }
 
+// ── Image URL cell ────────────────────────────────────────────────────────────
+function ImageUrlCell({ post, onSaveUrl }) {
+  const [url,     setUrl]     = useState('');
+  const [saving,  setSaving]  = useState(false);
+  const [saveErr, setSaveErr] = useState(null);
+  const [saved,   setSaved]   = useState(false);
+
+  const handleSave = async () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    setSaveErr(null);
+    setSaved(false);
+    try {
+      const { data: updatedRows, error } = await db
+        .from('posts')
+        .update({ featured_image: trimmed })
+        .eq('id', post.id)
+        .select('id, featured_image');
+
+      if (error) {
+        setSaveErr({ code: error.code ?? 'ERR', message: error.message, table: 'posts' });
+      } else {
+        setSaved(true);
+        setUrl('');
+        setTimeout(() => setSaved(false), 2500);
+        await onSaveUrl(post.id, trimmed);
+      }
+    } catch (err) {
+      setSaveErr({ code: 'JS_ERR', message: String(err), table: 'posts' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1 min-w-0" style={{ maxWidth: '260px' }}>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => { setUrl(e.target.value); setSaveErr(null); setSaved(false); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+          placeholder="Paste image URL…"
+          className="flex-1 rounded-lg border px-2.5 py-1.5 text-[11px] outline-none transition-colors min-w-0"
+          style={{
+            background:  PARCHMENT,
+            borderColor: saveErr ? 'rgba(239,68,68,0.45)' : saved ? 'rgba(74,222,128,0.45)' : `${SIGNAL}25`,
+            color:       SLATE,
+            fontFamily:  "'JetBrains Mono','Courier New',monospace",
+          }}
+          onFocus={(e)  => { if (!saveErr && !saved) e.target.style.borderColor = `${SIGNAL}60`; }}
+          onBlur={(e)   => { e.target.style.borderColor = saveErr ? 'rgba(239,68,68,0.45)' : saved ? 'rgba(74,222,128,0.45)' : `${SIGNAL}25`; }}
+        />
+        <button
+          type="button"
+          disabled={!url.trim() || saving}
+          onClick={handleSave}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            background: saved  ? 'rgba(74,222,128,0.12)'
+                       : saveErr ? 'rgba(239,68,68,0.10)'
+                       : `${BRASS}15`,
+            color:      saved  ? '#4ade80'
+                       : saveErr ? '#dc2626'
+                       : BRASS_DIM,
+            border: `1px solid ${saved ? 'rgba(74,222,128,0.35)' : saveErr ? 'rgba(239,68,68,0.35)' : `${BRASS}35`}`,
+          }}
+        >
+          {saving
+            ? <Loader2 className="w-3 h-3 animate-spin" />
+            : saved
+              ? <CheckCheck className="w-3 h-3" />
+              : <Download className="w-3 h-3" />}
+          {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Link'}
+        </button>
+      </div>
+      {saveErr && (
+        <p
+          className="text-[9px] font-mono leading-tight px-1"
+          style={{ color: '#dc2626' }}
+          title={JSON.stringify(saveErr)}
+        >
+          ✗ [{saveErr.table}] code:{saveErr.code} — {saveErr.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Post row ──────────────────────────────────────────────────────────────────
-function PostRow({ post, onUpdate, onHeroUpload }) {
+function PostRow({ post, onUpdate, onHeroUpload, onSaveUrl }) {
   return (
     <div
-      className="flex items-center gap-4 px-5 py-3 rounded-xl border transition-all duration-150"
+      className="flex flex-col gap-2 px-5 py-3 rounded-xl border transition-all duration-150"
       style={{ background: WHITE, borderColor: BORDER, boxShadow: '0 1px 3px rgba(44,62,80,0.06)' }}
     >
-      {/* Hero thumbnail + upload button */}
-      <HeroCell post={post} onHeroUpload={onHeroUpload} />
+      {/* Main row */}
+      <div className="flex items-center gap-4">
+        {/* Hero thumbnail + upload button */}
+        <HeroCell post={post} onHeroUpload={onHeroUpload} />
 
-      {/* Title + Date */}
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-sm font-bold leading-tight truncate"
-          style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}
-        >
-          {post.title}
-        </p>
-        <p className="text-[10px] mt-0.5 font-medium" style={{ color: SLATE_MUTED }}>
-          {fmtDate(post.date)}
-          {!post.featured_image && (
-            <span className="ml-2 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
-              · No hero
-            </span>
-          )}
-        </p>
-      </div>
+        {/* Title + Date */}
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-sm font-bold leading-tight truncate"
+            style={{ color: SLATE, fontFamily: "'Montserrat', sans-serif" }}
+          >
+            {post.title}
+          </p>
+          <p className="text-[10px] mt-0.5 font-medium" style={{ color: SLATE_MUTED }}>
+            {fmtDate(post.date)}
+            {!post.featured_image && (
+              <span className="ml-2 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
+                · No hero
+              </span>
+            )}
+          </p>
+        </div>
 
-      {/* Industry tag */}
-      <div className="flex-shrink-0">
-        <IndustryDropdown
-          value={post.industry}
-          onChange={(val) => onUpdate(post.id, 'industry', val)}
+        {/* Industry tag */}
+        <div className="flex-shrink-0">
+          <IndustryDropdown
+            value={post.industry}
+            onChange={(val) => onUpdate(post.id, 'industry', val)}
+          />
+        </div>
+
+        {/* Status toggle */}
+        <div className="flex-shrink-0">
+          <StatusToggle
+            value={post.status}
+            onChange={(val) => onUpdate(post.id, 'status', val)}
+          />
+        </div>
+
+        {/* Brass dot — published indicator */}
+        <div
+          className="w-2 h-2 rounded-full flex-shrink-0"
+          style={{ background: post.status === 'Published' ? BRASS : PARCHMENT2 }}
+          title={post.status}
         />
       </div>
 
-      {/* Status toggle */}
-      <div className="flex-shrink-0">
-        <StatusToggle
-          value={post.status}
-          onChange={(val) => onUpdate(post.id, 'status', val)}
-        />
+      {/* Image URL row */}
+      <div className="flex items-center gap-2 pl-1" style={{ borderTop: `1px solid ${BORDER2}`, paddingTop: '8px' }}>
+        <span className="text-[9px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: SLATE_FAINT, minWidth: '56px' }}>
+          Image URL
+        </span>
+        <ImageUrlCell post={post} onSaveUrl={onSaveUrl} />
       </div>
-
-      {/* Brass dot — published indicator */}
-      <div
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{ background: post.status === 'Published' ? BRASS : PARCHMENT2 }}
-        title={post.status}
-      />
     </div>
   );
 }
@@ -1807,7 +1908,7 @@ export default function Newsroom() {
                 ) : visible.length > 0 ? (
                   <div className="flex flex-col gap-2">
                     {visible.map((post) => (
-                      <PostRow key={post.id} post={post} onUpdate={updatePost} onHeroUpload={handleHeroUpload} />
+                      <PostRow key={post.id} post={post} onUpdate={updatePost} onHeroUpload={handleHeroUpload} onSaveUrl={handleHeroUpload} />
                     ))}
                   </div>
                 ) : (
