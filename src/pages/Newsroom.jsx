@@ -1719,6 +1719,38 @@ export default function Newsroom() {
       {/* Main canvas */}
       <main className="flex-1 flex flex-col overflow-hidden">
 
+        {/* ── Connection info bar — always visible ── */}
+        <div
+          className="flex items-center gap-4 px-5 py-2 flex-shrink-0 flex-wrap"
+          style={{ background: '#1e1e2e', borderBottom: `2px solid ${BRASS}60` }}
+        >
+          <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: BRASS }}>DB Connection</span>
+          <span className="flex items-center gap-1.5 text-[11px] font-mono" style={{ color: '#cdd6f4' }}>
+            <span style={{ color: '#6c7086' }}>URL:</span>
+            <span style={{ color: '#cba6f7', userSelect: 'all' }}>{SUPABASE_URL}</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] font-mono" style={{ color: '#cdd6f4' }}>
+            <span style={{ color: '#6c7086' }}>TABLE:</span>
+            <span style={{ color: '#a6e3a1', userSelect: 'all' }}>posts</span>
+          </span>
+          {handshake === 'success' && (
+            <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(166,227,161,0.15)', color: '#a6e3a1', border: '1px solid rgba(166,227,161,0.3)' }}>
+              ✓ Handshake OK
+            </span>
+          )}
+          {(handshake === 'failure' || handshake === 'rls') && (
+            <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(243,139,168,0.15)', color: '#f38ba8', border: '1px solid rgba(243,139,168,0.3)' }}>
+              ✗ Handshake Failed
+            </span>
+          )}
+          {handshake === null && (
+            <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(203,166,247,0.12)', color: '#cba6f7', border: '1px solid rgba(203,166,247,0.25)' }}>
+              Checking…
+            </span>
+          )}
+        </div>
+        {/* ───────────────────────────────────────── */}
+
         {/* ── Handshake banner ── */}
         {handshake === 'success' && (
           <div
