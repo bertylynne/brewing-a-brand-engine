@@ -87,12 +87,12 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
   // ── 1. Upload brand assets ─────────────────────────────────────────────────
   onProgress('Uploading logo…');
   const logoUrl = data.logo
-    ? await uploadAsset(data.logo, data.logoName || 'logo.png', `${bizId}/brand`)
+    ? await uploadAsset(data.logo, data.logoName || 'logo.png', `${bizId}/atmosphere`)
     : null;
 
   onProgress('Uploading hero image…');
   const heroImageUrl = data.heroImage
-    ? await uploadAsset(data.heroImage, data.heroImageName || 'hero.jpg', `${bizId}/brand`)
+    ? await uploadAsset(data.heroImage, data.heroImageName || 'hero.jpg', `${bizId}/atmosphere`)
     : null;
 
   onProgress('Uploading brand photos…');
