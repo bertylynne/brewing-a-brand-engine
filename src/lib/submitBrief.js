@@ -28,8 +28,10 @@ async function dbUpsert(table, body, onConflict) {
   const url  = `${SB_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`;
   const res  = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) });
   const json = await res.json();
-  if (!res.ok) return { error: { message: json?.message || json?.hint || JSON.stringify(json) } };
-  return { error: null };
+  console.log(`dbUpsert(${table}) status=${res.status}`, json);
+  if (!res.ok) return { data: null, error: { message: json?.message || json?.hint || JSON.stringify(json) } };
+  const rows = Array.isArray(json) ? json : [json];
+  return { data: rows, error: null };
 }
 
 async function dbDelete(table, col, val) {
@@ -127,12 +129,13 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
   // ✅ DEBUG: inspect exact payload before sending
   console.log('Sending to Supabase (clients):', JSON.stringify(clientFields, null, 2));
 
-  const { data: clientRows, error: clientError } = await dbPost('clients', clientFields);
+  // UPSERT on subdomain_prefix — safe to re-run without hitting unique constraint
+  const { data: clientRows, error: clientError } = await dbUpsert('clients', clientFields, 'subdomain_prefix');
   if (clientError) throw new Error(`clients: ${clientError.message}`);
   const clientId = clientRows?.[0]?.id ?? null;
-  if (!clientId) throw new Error(`clients: insert returned no id — response was: ${JSON.stringify(clientRows)}`);
+  if (!clientId) throw new Error(`clients: upsert returned no id — response was: ${JSON.stringify(clientRows)}`);
 
-  console.log('Client record created. clientId:', clientId);
+  console.log('Client record upserted. clientId:', clientId);
 
   // ── 3. Upsert businesses row ───────────────────────────────────────────────
   onProgress('Saving business profile…');
@@ -155,7 +158,7 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
     brand_colors:      data.brandColors    || null,
     custom_design:     data.customDesign   || null,
     business_hours:    data.businessHours  || null,
-    status:            publishAction ? 'published' : 'pending',
+    status:            publishAction ? 'published' : 'draft',
     is_published:      publishAction,
     client_id:         clientId,
   };
