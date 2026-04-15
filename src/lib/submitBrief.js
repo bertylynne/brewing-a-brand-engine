@@ -53,13 +53,13 @@ async function uploadAsset(blobUrl, filename, folder) {
     const path = `${folder}/${Date.now()}-${filename}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('salon-assets')
+      .from('salon-content')
       .upload(path, file, { upsert: true });
 
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage
-      .from('salon-assets')
+      .from('salon-content')
       .getPublicUrl(path);
 
     return data.publicUrl;
