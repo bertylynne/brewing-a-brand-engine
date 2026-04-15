@@ -11,11 +11,15 @@ const SB_HDRS = {
   'Prefer':        'return=representation',
 };
 
-async function dbPost(table, body) {
-  const res  = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_HDRS, body: JSON.stringify(body) });
+async function dbPost(table, body, selectCols = '*') {
+  // Append ?select= so PostgREST always returns the requested columns in the 201 body
+  const url  = `${SB_URL}/rest/v1/${table}?select=${encodeURIComponent(selectCols)}`;
+  const res  = await fetch(url, { method: 'POST', headers: SB_HDRS, body: JSON.stringify(body) });
   const json = await res.json();
+  console.log(`dbPost(${table}) status=${res.status}`, json);
   if (!res.ok) return { data: null, error: { message: json?.message || json?.hint || JSON.stringify(json) } };
-  return { data: Array.isArray(json) ? json : [json], error: null };
+  const rows = Array.isArray(json) ? json : [json];
+  return { data: rows, error: null };
 }
 
 async function dbUpsert(table, body, onConflict) {
@@ -122,10 +126,11 @@ export async function submitBrief(data, onProgress = () => {}, publishAction = f
   // ✅ DEBUG: inspect exact payload before sending
   console.log('Sending to Supabase (clients):', JSON.stringify(clientFields, null, 2));
 
-  const { data: clientRows, error: clientError } = await dbPost('clients', clientFields);
+  // Request only the 'id' column back — avoids RLS SELECT issues on other columns
+  const { data: clientRows, error: clientError } = await dbPost('clients', clientFields, 'id');
   if (clientError) throw new Error(`clients: ${clientError.message}`);
-  const clientId = clientRows[0]?.id;
-  if (!clientId) throw new Error('clients: insert succeeded but no id returned');
+  const clientId = clientRows?.[0]?.id ?? null;
+  if (!clientId) throw new Error(`clients: insert returned no id — response was: ${JSON.stringify(clientRows)}`);
 
   console.log('Client record created. clientId:', clientId);
 

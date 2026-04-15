@@ -421,13 +421,12 @@ export default function Step5Finalize({ onBack, data, isAdmin }) {
     setProgressMsg('Connecting to CBA Database…');
     try {
       const { clientId } = await submitBrief(data, (msg) => setProgressMsg(msg), false);
+      if (!clientId) throw new Error('Save completed but no Salon ID was returned. Please contact support.');
       setSavedClientId(clientId);
       setLoading(false);
       setSubmitted(true);
       // Redirect to the live MasterTemplate for this salon
-      if (clientId) {
-        window.location.href = `${window.location.origin}/master-template?id=${clientId}`;
-      }
+      window.location.href = `${window.location.origin}/master-template?id=${clientId}`;
     } catch (err) {
       setLoading(false);
       setSubmitError(err.message || 'An unexpected error occurred. Please try again.');
